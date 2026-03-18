@@ -47,7 +47,7 @@ fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
 
             return L.circleMarker(latlng, {
                 radius: 6,
-                fillColor: "#38b6f5",
+                fillColor: "#019EDF",
                 color: "#ffffff",
                 weight: 1,
                 fillOpacity: 0.9

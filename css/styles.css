@@ -1,20 +1,100 @@
 
-body{margin:0;font-family:Arial}
-header{background:#38b6f5;color:white;padding:10px}
-.container{display:flex;height:90vh}
-aside{width:280px;padding:10px;background:#f0f8ff;overflow:auto}
-#map{flex:1}
+/* GENERAL */
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: #f4f8fb;
+}
 
-.town-item{padding:6px;cursor:pointer;border-bottom:1px solid #ddd;}
-.town-item:hover{background:#d6ecfb;}
-.active-town{background:#38b6f5;color:white;}
+/* HEADER */
+.header {
+  background: #019EDF;
+  color: white;
+  text-align: center;
+  padding: 15px 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
 
-input{width:100%;padding:6px;margin-bottom:10px;}
+.header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: bold;
+}
 
-.kpi-box{
- padding:6px;
- background:white;
- margin-bottom:6px;
- border-radius:4px;
- box-shadow:0 1px 3px rgba(0,0,0,0.2);
+.header h2 {
+  margin: 5px 0 0 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.header img {
+  width: 70px;
+  margin: 8px 0;
+}
+
+/* LAYOUT */
+.container {
+  display: flex;
+  height: calc(100vh - 120px);
+}
+
+/* SIDEBAR */
+aside {
+  width: 280px;
+  padding: 12px;
+  background: #eef6fb;
+  overflow-y: auto;
+  border-right: 1px solid #d0e6f5;
+}
+
+/* SIDEBAR HEADINGS */
+aside h3 {
+  margin-top: 10px;
+  margin-bottom: 5px;
+  color: #019EDF;
+  font-size: 14px;
+}
+
+/* SEARCH BOX */
+input {
+  width: 100%;
+  padding: 6px;
+  margin-bottom: 10px;
+  border: 1px solid #cfe4f3;
+  border-radius: 4px;
+}
+
+/* TOWN LIST */
+.town-item {
+  padding: 6px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid #e0edf7;
+  font-size: 13px;
+}
+
+.town-item:hover {
+  background: #d6ecfb;
+}
+
+/* ACTIVE TOWN */
+.active-town {
+  background: #019EDF;
+  color: white;
+  font-weight: bold;
+}
+
+/* KPI BOX */
+.kpi-box {
+  padding: 8px;
+  background: white;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  border-left: 4px solid #019EDF;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  font-size: 13px;
+}
+
+/* MAP */
+#map {
+  flex: 1;
 }
