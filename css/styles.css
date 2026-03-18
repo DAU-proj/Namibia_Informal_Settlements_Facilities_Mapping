@@ -1,0 +1,20 @@
+
+body{margin:0;font-family:Arial}
+header{background:#38b6f5;color:white;padding:10px}
+.container{display:flex;height:90vh}
+aside{width:280px;padding:10px;background:#f0f8ff;overflow:auto}
+#map{flex:1}
+
+.town-item{padding:6px;cursor:pointer;border-bottom:1px solid #ddd;}
+.town-item:hover{background:#d6ecfb;}
+.active-town{background:#38b6f5;color:white;}
+
+input{width:100%;padding:6px;margin-bottom:10px;}
+
+.kpi-box{
+ padding:6px;
+ background:white;
+ margin-bottom:6px;
+ border-radius:4px;
+ box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
