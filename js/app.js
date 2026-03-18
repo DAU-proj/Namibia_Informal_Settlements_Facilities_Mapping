@@ -1,40 +1,80 @@
+// Initialize map (Namibia bounds)
+var map = L.map('map', {
+    maxBounds: [[-30, 10], [-16, 30]]
+}).setView([-22, 17], 6);
 
-var map=L.map('map',{maxBounds:[[ -30, 10],[ -16, 30 ]]}).setView([-22,17],6);
+// Basemaps
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
 
-var osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-var esri=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
-L.control.layers({"OSM":osm,"Satellite":esri}).addTo(map);
+L.control.layers({
+    "OSM": osm,
+    "Satellite": esri
+}).addTo(map);
 
-var cluster=L.markerClusterGroup();
-var townLayers={}, allTowns=[];
+// Cluster group
+var cluster = L.markerClusterGroup();
 
-fetch('data/facilities.geojson')
-.then(r=>r.json())
-.then(data=>{
-    var layer=L.geoJSON(data,{
-        pointToLayer:(f,latlng)=>{
-            let t=f.properties.Town;
-            if(t && !townLayers[t]){
-                townLayers[t]=[];
-                allTowns.push(t);
+// Storage
+var townLayers = {};
+var allTowns = [];
+
+// =====================
+// LOAD FACILITY DATA
+// =====================
+fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
+.then(response => {
+    if (!response.ok) {
+        throw new Error("GeoJSON not found. Check file path.");
+    }
+    return response.json();
+})
+.then(data => {
+
+    console.log("Data loaded successfully:", data); // Debug
+
+    var layer = L.geoJSON(data, {
+
+        // Style points
+        pointToLayer: function (feature, latlng) {
+
+            let town = feature.properties.Town;
+
+            if (town && !townLayers[town]) {
+                townLayers[town] = [];
+                allTowns.push(town);
             }
-            return L.circleMarker(latlng,{
-                radius:6,fillColor:"#38b6f5",color:"#fff",weight:1,fillOpacity:0.9
+
+            return L.circleMarker(latlng, {
+                radius: 6,
+                fillColor: "#38b6f5",
+                color: "#ffffff",
+                weight: 1,
+                fillOpacity: 0.9
             });
         },
-        onEachFeature:(f,l)=>{
-            let p=f.properties;
-            let img=p.github_image_url_cdn||"";
-            l.bindPopup(`
-                <div style="max-width:300px;">
-                <img src="${img}" style="width:100%;border-radius:6px;"><br>
-                <b>Town:</b> ${p.Town}<br>
-                <b>Facility:</b> ${p.Facility}<br>
-                <b>Status:</b> ${p["Is the facility functional?"]}<br>
-                <b>Condition:</b> ${p.Condition}
+
+        // Popup content
+        onEachFeature: function (feature, layer) {
+
+            let p = feature.properties;
+            let img = p.github_image_url_cdn || "";
+
+            layer.bindPopup(`
+                <div style="max-width:300px;font-family:Arial;">
+                    <img src="${img}" style="width:100%;border-radius:6px;"><br>
+                    <b>Town:</b> ${p.Town || ""}<br>
+                    <b>Facility:</b> ${p.Facility || ""}<br>
+                    <b>Status:</b> ${p["Is the facility functional?"] || ""}<br>
+                    <b>Condition:</b> ${p.Condition || ""}
                 </div>
             `);
-            townLayers[p.Town].push(l);
+
+            // Store layer by town
+            if (!townLayers[p.Town]) {
+                townLayers[p.Town] = [];
+            }
+            townLayers[p.Town].push(layer);
         }
     });
 
@@ -42,62 +82,108 @@ fetch('data/facilities.geojson')
     map.addLayer(cluster);
 
     buildTownList(allTowns);
+
+})
+.catch(error => {
+    console.error("ERROR LOADING GEOJSON:", error);
 });
 
-// KPI
-function updateKPI(town){
-    let layers=townLayers[town]||[];
-    let total=layers.length;
-    let functional=layers.filter(l=>l.feature.properties["Is the facility functional?"]=="Yes").length;
-    let good=layers.filter(l=>l.feature.properties.Condition=="Good").length;
 
-    document.getElementById("kpi").innerHTML=`
-    <div class="kpi-box">Total Facilities: ${total}</div>
-    <div class="kpi-box">Functional: ${functional}</div>
-    <div class="kpi-box">Good Condition: ${good}</div>
-    `;
-}
+// =====================
+// BUILD TOWN LIST
+// =====================
+function buildTownList(towns) {
 
-// Town list
-function buildTownList(towns){
-    let container=document.getElementById("townList");
-    container.innerHTML="";
-    towns.sort().forEach(t=>{
-        let div=document.createElement("div");
-        div.className="town-item";
-        div.innerText=t;
+    let container = document.getElementById("townList");
+    container.innerHTML = "";
 
-        div.onclick=function(){
-            document.querySelectorAll('.town-item').forEach(el=>el.classList.remove('active-town'));
+    towns.sort().forEach(town => {
+
+        let div = document.createElement("div");
+        div.className = "town-item";
+        div.innerText = town;
+
+        div.onclick = function () {
+
+            // Highlight selected
+            document.querySelectorAll('.town-item').forEach(el => el.classList.remove('active-town'));
             div.classList.add('active-town');
 
-            let group=L.featureGroup(townLayers[t]);
+            // Zoom to all features in town
+            let group = L.featureGroup(townLayers[town]);
             map.fitBounds(group.getBounds());
 
-            updateKPI(t);
+            // Update KPI
+            updateKPI(town);
         };
 
         container.appendChild(div);
     });
 }
 
-// search
-document.getElementById("searchBox").addEventListener("keyup",function(){
-    let val=this.value.toLowerCase();
-    let filtered=allTowns.filter(t=>t.toLowerCase().includes(val));
+
+// =====================
+// KPI FUNCTION
+// =====================
+function updateKPI(town) {
+
+    let layers = townLayers[town] || [];
+
+    let total = layers.length;
+
+    let functional = layers.filter(l =>
+        l.feature.properties["Is the facility functional?"] === "Yes"
+    ).length;
+
+    let good = layers.filter(l =>
+        l.feature.properties.Condition === "Good"
+    ).length;
+
+    document.getElementById("kpi").innerHTML = `
+        <div class="kpi-box">Total Facilities: ${total}</div>
+        <div class="kpi-box">Functional: ${functional}</div>
+        <div class="kpi-box">Good Condition: ${good}</div>
+    `;
+}
+
+
+// =====================
+// SEARCH FUNCTION
+// =====================
+document.getElementById("searchBox").addEventListener("keyup", function () {
+
+    let value = this.value.toLowerCase();
+
+    let filtered = allTowns.filter(t =>
+        t.toLowerCase().includes(value)
+    );
+
     buildTownList(filtered);
 });
 
-// Settlement interaction (optional file)
+
+// =====================
+// SETTLEMENT INTERACTION
+// =====================
 fetch('data/settlements.geojson')
-.then(r=>r.json())
-.then(data=>{
-    L.geoJSON(data,{
-        style:{color:"#e74c3c",weight:1,fillOpacity:0.2},
-        onEachFeature:(f,l)=>{
-            l.on("click",function(){
-                map.fitBounds(l.getBounds());
+.then(r => r.json())
+.then(data => {
+
+    L.geoJSON(data, {
+        style: {
+            color: "#e74c3c",
+            weight: 1,
+            fillOpacity: 0.2
+        },
+        onEachFeature: function (feature, layer) {
+
+            layer.on("click", function () {
+                map.fitBounds(layer.getBounds());
             });
         }
     }).addTo(map);
-}).catch(()=>{});
+
+})
+.catch(() => {
+    console.warn("No settlements layer found.");
+});
