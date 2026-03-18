@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Namibia Informal Settlements Facilities Mapping</title>
+<title>UN-HABITAT | Namibia Informal Settlements Facilities Mapping</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -10,25 +10,35 @@
 
 <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
 
-<header><h1>Namibia Informal Settlements Facilities Mapping</h1></header>
+<header class="header">
+  <div class="header-content">
+    <h1>UN-HABITAT</h1>
+    <img src="assets/unhabitat_logo.png" alt="UN-Habitat Logo">
+    <h2>Namibia Informal Settlements Facilities Mapping</h2>
+  </div>
+</header>
 
 <div class="container">
-<aside>
-<h3>Search</h3>
-<input type="text" id="searchBox" placeholder="Search town..." />
 
-<h3>Towns</h3>
-<div id="townList"></div>
+  <aside>
+    <h3>Search</h3>
+    <input type="text" id="searchBox" placeholder="Search town..." />
 
-<h3>KPI (Selected Town)</h3>
-<div id="kpi"></div>
-</aside>
+    <h3>Towns</h3>
+    <div id="townList"></div>
 
-<div id="map"></div>
+    <h3>KPI (Selected Town)</h3>
+    <div id="kpi"></div>
+  </aside>
+
+  <div id="map"></div>
+
 </div>
 
 <script src="js/app.js"></script>
+
 </body>
 </html>
