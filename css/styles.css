@@ -1,4 +1,3 @@
-
 /* GENERAL */
 body {
   margin: 0;
@@ -18,13 +17,11 @@ body {
 .header h1 {
   margin: 0;
   font-size: 22px;
-  font-weight: bold;
 }
 
 .header h2 {
   margin: 5px 0 0 0;
   font-size: 14px;
-  font-weight: normal;
 }
 
 .header img {
@@ -47,15 +44,13 @@ aside {
   border-right: 1px solid #d0e6f5;
 }
 
-/* SIDEBAR HEADINGS */
+/* HEADINGS */
 aside h3 {
-  margin-top: 10px;
-  margin-bottom: 5px;
   color: #019EDF;
   font-size: 14px;
 }
 
-/* SEARCH BOX */
+/* SEARCH */
 input {
   width: 100%;
   padding: 6px;
@@ -64,34 +59,41 @@ input {
   border-radius: 4px;
 }
 
-/* TOWN LIST */
+/* TOWNS */
 .town-item {
   padding: 6px 8px;
   cursor: pointer;
   border-bottom: 1px solid #e0edf7;
-  font-size: 13px;
 }
 
 .town-item:hover {
   background: #d6ecfb;
 }
 
-/* ACTIVE TOWN */
 .active-town {
   background: #019EDF;
   color: white;
   font-weight: bold;
 }
 
-/* KPI BOX */
+/* KPI */
 .kpi-box {
   padding: 8px;
-  background: white;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   border-radius: 4px;
-  border-left: 4px solid #019EDF;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
   font-size: 13px;
+  transition: 0.2s;
+}
+
+.kpi-box:hover {
+  transform: translateY(-2px);
+}
+
+.kpi-main {
+  border-left: 5px solid #019EDF;
+  font-weight: bold;
 }
 
 /* MAP */

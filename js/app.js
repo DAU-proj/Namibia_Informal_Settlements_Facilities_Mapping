@@ -1,41 +1,47 @@
-// Initialize map (Namibia bounds)
+// =====================
+// INITIALIZE MAP
+// =====================
 var map = L.map('map', {
     maxBounds: [[-30, 10], [-16, 30]]
 }).setView([-22, 17], 6);
 
-// Basemaps
+// =====================
+// BASEMAPS
+// =====================
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-var esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+
+var esri = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+);
 
 L.control.layers({
     "OSM": osm,
     "Satellite": esri
 }).addTo(map);
 
-// Cluster group
+// =====================
+// GLOBAL STORAGE
+// =====================
 var cluster = L.markerClusterGroup();
-
-// Storage
 var townLayers = {};
 var allTowns = [];
 
 // =====================
 // LOAD FACILITY DATA
 // =====================
-fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
+fetch('data/namibia_dashboard.geojson')
 .then(response => {
     if (!response.ok) {
-        throw new Error("GeoJSON not found. Check file path.");
+        throw new Error("GeoJSON not found. Check path.");
     }
     return response.json();
 })
 .then(data => {
 
-    console.log("Data loaded successfully:", data); // Debug
+    console.log("Data loaded:", data);
 
     var layer = L.geoJSON(data, {
 
-        // Style points
         pointToLayer: function (feature, latlng) {
 
             let town = feature.properties.Town;
@@ -54,7 +60,6 @@ fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
             });
         },
 
-        // Popup content
         onEachFeature: function (feature, layer) {
 
             let p = feature.properties;
@@ -70,7 +75,6 @@ fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
                 </div>
             `);
 
-            // Store layer by town
             if (!townLayers[p.Town]) {
                 townLayers[p.Town] = [];
             }
@@ -88,7 +92,6 @@ fetch('data/namibia_dashboard.geojson')   // ✅ FIXED HERE
     console.error("ERROR LOADING GEOJSON:", error);
 });
 
-
 // =====================
 // BUILD TOWN LIST
 // =====================
@@ -105,15 +108,12 @@ function buildTownList(towns) {
 
         div.onclick = function () {
 
-            // Highlight selected
             document.querySelectorAll('.town-item').forEach(el => el.classList.remove('active-town'));
             div.classList.add('active-town');
 
-            // Zoom to all features in town
             let group = L.featureGroup(townLayers[town]);
             map.fitBounds(group.getBounds());
 
-            // Update KPI
             updateKPI(town);
         };
 
@@ -121,34 +121,67 @@ function buildTownList(towns) {
     });
 }
 
-
 // =====================
-// KPI FUNCTION
+// ENHANCED KPI FUNCTION
 // =====================
 function updateKPI(town) {
 
     let layers = townLayers[town] || [];
-
     let total = layers.length;
 
     let functional = layers.filter(l =>
-        l.feature.properties["Is the facility functional?"] === "Yes"
+        (l.feature.properties["Is the facility functional?"] || "").toLowerCase() === "yes"
     ).length;
 
-    let good = layers.filter(l =>
-        l.feature.properties.Condition === "Good"
-    ).length;
+    let conditionCounts = {};
+
+    layers.forEach(l => {
+        let cond = (l.feature.properties.Condition || "Unknown").trim();
+        cond = cond.charAt(0).toUpperCase() + cond.slice(1).toLowerCase();
+        conditionCounts[cond] = (conditionCounts[cond] || 0) + 1;
+    });
+
+    function getColor(condition) {
+        condition = condition.toLowerCase();
+        if (condition.includes("good")) return "#2ecc71";
+        if (condition.includes("fair")) return "#f1c40f";
+        if (condition.includes("poor")) return "#e74c3c";
+        return "#95a5a6";
+    }
+
+    let conditionHTML = "";
+
+    Object.keys(conditionCounts).forEach(c => {
+
+        let count = conditionCounts[c];
+        let percent = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
+        let color = getColor(c);
+
+        conditionHTML += `
+            <div class="kpi-box" style="border-left:5px solid ${color}">
+                <b>${c}</b><br>
+                ${count} (${percent}%)
+            </div>
+        `;
+    });
+
+    let functionalPercent = total > 0 ? ((functional / total) * 100).toFixed(1) : 0;
 
     document.getElementById("kpi").innerHTML = `
-        <div class="kpi-box">Total Facilities: ${total}</div>
-        <div class="kpi-box">Functional: ${functional}</div>
-        <div class="kpi-box">Good Condition: ${good}</div>
+        <div class="kpi-box kpi-main">
+            <b>Total Facilities</b><br>${total}
+        </div>
+
+        <div class="kpi-box kpi-main">
+            <b>Functional</b><br>${functional} (${functionalPercent}%)
+        </div>
+
+        ${conditionHTML}
     `;
 }
 
-
 // =====================
-// SEARCH FUNCTION
+// SEARCH
 // =====================
 document.getElementById("searchBox").addEventListener("keyup", function () {
 
@@ -161,9 +194,8 @@ document.getElementById("searchBox").addEventListener("keyup", function () {
     buildTownList(filtered);
 });
 
-
 // =====================
-// SETTLEMENT INTERACTION
+// SETTLEMENTS
 // =====================
 fetch('data/settlements.geojson')
 .then(r => r.json())
@@ -176,7 +208,6 @@ fetch('data/settlements.geojson')
             fillOpacity: 0.2
         },
         onEachFeature: function (feature, layer) {
-
             layer.on("click", function () {
                 map.fitBounds(layer.getBounds());
             });
@@ -185,5 +216,5 @@ fetch('data/settlements.geojson')
 
 })
 .catch(() => {
-    console.warn("No settlements layer found.");
+    console.warn("Settlements layer not found.");
 });
