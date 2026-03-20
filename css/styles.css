@@ -4,7 +4,6 @@ body {
   background:#f7fbfd;
 }
 
-/* HEADER */
 .topbar {
   background:#019EDF;
   padding:10px;
@@ -21,14 +20,12 @@ body {
 .brand-name { color:white; font-weight:bold; }
 .brand-subtitle { color:white; font-size:12px; }
 
-/* HERO */
 .hero {
   background:#eef7fc;
   padding:10px;
   border-bottom:1px solid #ddd;
 }
 
-/* LAYOUT */
 .page {
   display:flex;
   height:calc(100vh - 90px);
@@ -39,7 +36,6 @@ body {
   padding:10px;
   background:#f9fcfe;
   border-right:1px solid #ddd;
-  overflow-y:auto;
 }
 
 .panel {
@@ -47,16 +43,13 @@ body {
   padding:10px;
   margin-bottom:10px;
   border-radius:6px;
-  border:1px solid #e2edf3;
 }
 
 .dropdown {
   width:100%;
   margin-bottom:6px;
-  padding:6px;
 }
 
-/* MAP */
 .map-section { flex:1; }
 #map { height:100%; }
 
@@ -70,32 +63,9 @@ body {
   justify-content:center;
   color:white;
   border:2px solid white;
-  box-shadow:0 0 4px rgba(0,0,0,0.3);
-
-  /* ANIMATION */
-  transform:scale(0.8);
-  opacity:0;
-  transition:all 0.3s ease;
 }
 
-/* When marker loads */
-.marker-icon.show {
-  transform:scale(1);
-  opacity:1;
-}
-
-/* Hover */
-.marker-icon:hover {
-  transform:scale(1.2);
-  box-shadow:0 0 10px rgba(0,0,0,0.6);
-}
-
-/* LEGEND */
-.legend-item {
-  font-size:13px;
-  margin-bottom:6px;
-}
-
+/* COLORS */
 .dot {
   width:10px;height:10px;border-radius:50%;
   display:inline-block;margin-right:5px;
@@ -105,27 +75,3 @@ body {
 .yellow {background:#f1c40f;}
 .red {background:#e74c3c;}
 .grey {background:#95a5a6;}
-
-/* CLICKABLE LEGEND */
-.clickable {
-  cursor:pointer;
-  padding:4px;
-  border-radius:4px;
-  transition:0.2s;
-}
-
-.clickable:hover {
-  background:#eef7fc;
-}
-
-.clickable.active {
-  background:#019EDF;
-  color:white;
-}
-
-/* POPUP */
-.popup-card img {
-  width:100%;
-  border-radius:6px;
-  margin-bottom:6px;
-}
