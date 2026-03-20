@@ -59,17 +59,28 @@
 <div class="panel">
   <h3>Legend</h3>
 
-  <b>Condition</b><br>
-  <span class="dot green"></span> Good<br>
-  <span class="dot yellow"></span> Fair<br>
-  <span class="dot red"></span> Poor<br>
-  <span class="dot grey"></span> Unknown<br><br>
+  <b>Condition</b>
 
-  <b>Facility</b><br>
-  <i class="fa fa-school"></i> School<br>
-  <i class="fa fa-hospital"></i> Health<br>
-  <i class="fa fa-droplet"></i> Water<br>
-  <i class="fa fa-toilet"></i> Sanitation<br>
+  <div class="legend-item clickable" data-condition="good">
+    <span class="dot green"></span> Good
+  </div>
+  <div class="legend-item clickable" data-condition="fair">
+    <span class="dot yellow"></span> Fair
+  </div>
+  <div class="legend-item clickable" data-condition="poor">
+    <span class="dot red"></span> Poor
+  </div>
+  <div class="legend-item clickable" data-condition="">
+    <span class="dot grey"></span> All
+  </div>
+
+  <hr>
+
+  <b>Facility</b>
+  <div><i class="fa fa-school"></i> School</div>
+  <div><i class="fa fa-hospital"></i> Health</div>
+  <div><i class="fa fa-droplet"></i> Water</div>
+  <div><i class="fa fa-toilet"></i> Sanitation</div>
 
 </div>
 
