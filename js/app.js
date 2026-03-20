@@ -49,7 +49,9 @@ fetch('asset/settlement_boundary.geojson')
   map.fitBounds(boundary.getBounds());
   map.setMaxBounds(boundary.getBounds());
 });
-
+map.fitBounds(boundary.getBounds());
+map.setMaxBounds(boundary.getBounds());
+map.options.maxBoundsViscosity = 1.0;
 // ================= FILTERS =================
 function populateFilters(){
   let fSet=new Set(), cSet=new Set();
