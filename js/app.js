@@ -165,3 +165,24 @@ document.querySelectorAll('.clickable').forEach(el=>{
 // EVENTS
 facilityFilter.onchange=renderData;
 conditionFilter.onchange=renderData;
+
+
+// =====================
+// LAST UPDATED (AUTO)
+// =====================
+function updateLastUpdated() {
+    const el = document.getElementById("lastUpdated");
+    if (!el) return;
+
+    const now = new Date();
+
+    const formatted = now.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+
+    el.innerText = "Last updated: " + formatted;
+}
+
+updateLastUpdated();
