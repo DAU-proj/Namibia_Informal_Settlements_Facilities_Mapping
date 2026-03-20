@@ -1,97 +1,183 @@
-var map = L.map('map').setView([-22, 17], 6);
+var map = L.map('map').setView([-22,17],6);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+// BASEMAPS
+var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+var sat = L.tileLayer(
+ 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+);
+
+osm.addTo(map);
+L.control.layers({ "OSM":osm, "Satellite":sat }).addTo(map);
 
 var cluster = L.markerClusterGroup();
 
-var allFeatures = [];
-var townLayers = {};
-var allTowns = [];
+var allFeatures=[], townLayers={}, allTowns=[];
 
 // LOAD DATA
 fetch('data/namibia_dashboard.geojson')
-.then(res => res.json())
-.then(data => {
-    allFeatures = data.features;
-    populateFilters();
-    renderData();
+.then(res=>res.json())
+.then(data=>{
+  allFeatures=data.features;
+  populateFilters();
+  renderData();
 });
 
-function populateFilters() {
-    let facSet = new Set();
-    let condSet = new Set();
+// FILTERS
+function populateFilters(){
+  let fSet=new Set(), cSet=new Set();
 
-    allFeatures.forEach(f => {
-        facSet.add(f.properties.Facility);
-        condSet.add(f.properties.Condition);
-    });
+  allFeatures.forEach(f=>{
+    fSet.add(f.properties.Facility);
+    cSet.add(f.properties.Condition);
+  });
 
-    facSet.forEach(v => facilityFilter.add(new Option(v,v)));
-    condSet.forEach(v => conditionFilter.add(new Option(v,v)));
+  fSet.forEach(v=>facilityFilter.add(new Option(v,v)));
+  cSet.forEach(v=>conditionFilter.add(new Option(v,v)));
 }
 
-function renderData() {
-
-    cluster.clearLayers();
-    townLayers = {};
-    allTowns = [];
-
-    let fac = facilityFilter.value.toLowerCase();
-    let cond = conditionFilter.value.toLowerCase();
-
-    let filtered = allFeatures.filter(f => {
-        let f1 = (f.properties.Facility||"").toLowerCase();
-        let c1 = (f.properties.Condition||"").toLowerCase();
-        return (!fac || f1.includes(fac)) && (!cond || c1.includes(cond));
-    });
-
-    filtered.forEach(f => {
-
-        let p = f.properties;
-        let latlng = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
-
-        let marker = L.marker(latlng);
-
-        // ✅ FIXED IMAGE POPUP
-        marker.bindPopup(`
-            <div class="popup-card">
-                ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" onerror="this.style.display='none'">` : ""}
-                <b>Town:</b> ${p.Town}<br>
-                <b>Facility:</b> ${p.Facility}<br>
-                <b>Status:</b> ${p["Is the facility functional?"]}<br>
-                <b>Condition:</b> ${p.Condition}
-            </div>
-        `);
-
-        let town = (p.Town||"").trim();
-
-        if(!townLayers[town]) {
-            townLayers[town] = [];
-            allTowns.push(town);
-        }
-
-        townLayers[town].push(marker);
-        cluster.addLayer(marker);
-    });
-
-    map.addLayer(cluster);
-    buildTownDropdown();
+// COLORS
+function getColor(cond){
+  cond=(cond||"").toLowerCase();
+  if(cond.includes("good")) return "#2ecc71";
+  if(cond.includes("fair")) return "#f1c40f";
+  if(cond.includes("poor")) return "#e74c3c";
+  return "#95a5a6";
 }
 
-function buildTownDropdown() {
-    townSelect.innerHTML = '<option value="">Select Town</option>';
+// ICONS
+function getIcon(f){
+  f=(f||"").toLowerCase();
+  if(f.includes("school")) return "fa-school";
+  if(f.includes("health")) return "fa-hospital";
+  if(f.includes("water")) return "fa-droplet";
+  if(f.includes("toilet")) return "fa-toilet";
+  return "fa-location-dot";
+}
 
-    [...new Set(allTowns)].sort().forEach(t=>{
-        townSelect.add(new Option(t,t));
+// RENDER DATA
+function renderData(){
+
+  cluster.clearLayers();
+  townLayers={}; allTowns=[];
+
+  let fval=facilityFilter.value.toLowerCase();
+  let cval=conditionFilter.value.toLowerCase();
+
+  let filtered=allFeatures.filter(f=>{
+    let f1=(f.properties.Facility||"").toLowerCase();
+    let c1=(f.properties.Condition||"").toLowerCase();
+    return (!fval||f1.includes(fval)) && (!cval||c1.includes(cval));
+  });
+
+  filtered.forEach((f,i)=>{
+
+    let p=f.properties;
+    let latlng=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
+
+    let marker=L.marker(latlng,{
+      icon:L.divIcon({
+        className:"custom-marker",
+        html:`<div class="marker-icon" style="background:${getColor(p.Condition)}">
+          <i class="fa ${getIcon(p.Facility)}"></i>
+        </div>`
+      })
     });
 
-    townSelect.onchange = function(){
-        let t = this.value;
-        let group = L.featureGroup(townLayers[t]||[]);
-        map.fitBounds(group.getBounds());
-    };
+    // POPUP (IMAGE FIXED)
+    marker.bindPopup(`
+      <div class="popup-card">
+        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" onerror="this.style.display='none'">`:""}
+        <b>Town:</b> ${p.Town}<br>
+        <b>Facility:</b> ${p.Facility}<br>
+        <b>Status:</b> ${p["Is the facility functional?"]}<br>
+        <b>Condition:</b> ${p.Condition}
+      </div>
+    `);
+
+    // ANIMATION DELAY
+    marker.on('add', function(){
+      setTimeout(()=>{
+        let el=this.getElement();
+        if(el) el.querySelector('.marker-icon').classList.add('show');
+      }, i*20);
+    });
+
+    // HOVER INTERACTION
+    marker.on('mouseover',function(){
+      let el=this.getElement();
+      if(el) el.querySelector('.marker-icon').style.transform="scale(1.2)";
+    });
+
+    marker.on('mouseout',function(){
+      let el=this.getElement();
+      if(el) el.querySelector('.marker-icon').style.transform="scale(1)";
+    });
+
+    let town=(p.Town||"").trim();
+    if(!townLayers[town]){
+      townLayers[town]=[];
+      allTowns.push(town);
+    }
+
+    townLayers[town].push(marker);
+    cluster.addLayer(marker);
+  });
+
+  map.addLayer(cluster);
+  buildTownDropdown();
 }
+
+// TOWN DROPDOWN
+function buildTownDropdown(){
+  townSelect.innerHTML='<option>Select Town</option>';
+
+  [...new Set(allTowns)].sort().forEach(t=>{
+    townSelect.add(new Option(t,t));
+  });
+
+  townSelect.onchange=function(){
+    let t=this.value;
+    let group=L.featureGroup(townLayers[t]||[]);
+    map.fitBounds(group.getBounds());
+    updateKPI(t);
+  };
+}
+
+// KPI
+function updateKPI(town){
+  let layers=townLayers[town]||[];
+
+  let total=layers.length;
+  let good=0, fair=0, poor=0;
+
+  layers.forEach(l=>{
+    let c=l.feature.properties.Condition?.toLowerCase()||"";
+    if(c.includes("good")) good++;
+    else if(c.includes("fair")) fair++;
+    else if(c.includes("poor")) poor++;
+  });
+
+  kpi.innerHTML=`
+    Total: ${total}<br>
+    Good: ${good}<br>
+    Fair: ${fair}<br>
+    Poor: ${poor}
+  `;
+}
+
+// LEGEND INTERACTION
+document.querySelectorAll('.clickable').forEach(el=>{
+  el.onclick=function(){
+    let cond=this.dataset.condition||"";
+
+    document.querySelectorAll('.clickable').forEach(i=>i.classList.remove('active'));
+    this.classList.add('active');
+
+    conditionFilter.value=cond;
+    renderData();
+  };
+});
 
 // EVENTS
-facilityFilter.onchange = renderData;
-conditionFilter.onchange = renderData;
+facilityFilter.onchange=renderData;
+conditionFilter.onchange=renderData;
