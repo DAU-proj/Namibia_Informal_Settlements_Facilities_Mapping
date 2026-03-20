@@ -63,19 +63,14 @@ body {
   justify-content:center;
   color:white;
   border:2px solid white;
+  transition:0.2s;
 }
 
-/* COLORS */
-.dot {
-  width:10px;height:10px;border-radius:50%;
-  display:inline-block;margin-right:5px;
+.marker-icon:hover {
+  transform:scale(1.2);
 }
 
-.green {background:#2ecc71;}
-.yellow {background:#f1c40f;}
-.red {background:#e74c3c;}
-.grey {background:#95a5a6;}
-
+/* CLUSTERS */
 .marker-cluster div {
   background:#019EDF;
   color:white;
@@ -88,3 +83,34 @@ body {
 
 .marker-cluster-medium div { background:#017bb5; }
 .marker-cluster-large div { background:#015a87; }
+
+/* LEGEND */
+.legend-item {
+  font-size:13px;
+  margin-bottom:6px;
+}
+
+.dot {
+  width:10px;height:10px;border-radius:50%;
+  display:inline-block;margin-right:5px;
+}
+
+.green {background:#2ecc71;}
+.yellow {background:#f1c40f;}
+.red {background:#e74c3c;}
+.grey {background:#95a5a6;}
+
+.clickable {
+  cursor:pointer;
+  padding:4px;
+  border-radius:4px;
+}
+
+.clickable:hover {
+  background:#eef7fc;
+}
+
+.clickable.active {
+  background:#019EDF;
+  color:white;
+}
