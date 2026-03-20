@@ -1,180 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>UN-HABITAT | Namibia Informal Settlements Facilities Mapping</title>
+<title>UN-HABITAT | Namibia Informal Settlements Facilities Mapping</title>
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-  <!-- Marker Cluster -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
-  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
-  <!-- Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-  <!-- Charts -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
 
-<!-- ================= HEADER ================= -->
+<!-- TOP BAR -->
 <header class="topbar">
   <div class="topbar-inner">
-
     <div class="brand">
       <img src="./asset/unhabitat_logo.png" class="brand-logo">
       <div>
         <div class="brand-name">UN-HABITAT</div>
-        <div class="brand-subtitle">Urban Data & Analytics Dashboard</div>
+        <div class="brand-subtitle">Urban Data & Analytics Unit</div>
       </div>
     </div>
-
   </div>
 </header>
 
-<!-- ================= TITLE ================= -->
+<!-- TITLE -->
 <section class="hero">
   <div class="hero-inner">
     <h1>Namibia Informal Settlements Facilities Mapping</h1>
-    <p>Interactive dashboard for facility condition monitoring and spatial analysis</p>
+    <p>Spatial analytics dashboard for facility condition monitoring</p>
   </div>
 </section>
 
-<!-- ================= MAIN ================= -->
+<!-- MAIN -->
 <main class="page">
 
-  <!-- ===== SIDEBAR ===== -->
-  <aside class="sidebar">
+<aside class="sidebar">
 
-    <!-- FILTERS -->
-    <div class="panel">
-      <h3>Filters</h3>
+  <!-- FILTERS -->
+  <div class="panel">
+    <h3>Filters</h3>
 
-      <label>Facility Type</label>
-      <select id="facilityFilter" class="dropdown">
-        <option value="">All</option>
-      </select>
+    <label>Facility Type</label>
+    <select id="facilityFilter" class="dropdown">
+      <option value="">All</option>
+    </select>
 
-      <label>Condition</label>
-      <select id="conditionFilter" class="dropdown">
-        <option value="">All</option>
-      </select>
+    <label>Condition</label>
+    <select id="conditionFilter" class="dropdown">
+      <option value="">All</option>
+    </select>
 
-      <label>Town</label>
-      <select id="townSelect" class="dropdown">
-        <option value="">-- Select Town --</option>
-      </select>
-    </div>
+    <label>Town</label>
+    <select id="townSelect" class="dropdown">
+      <option value="">-- Select Town --</option>
+    </select>
+  </div>
 
-    <!-- KPI -->
-    <div class="panel">
-      <h3>KPI Analytics</h3>
-      <div id="kpi">Select a town to view statistics</div>
-    </div>
+  <!-- KPI -->
+  <div class="panel">
+    <h3>KPI</h3>
+    <div id="kpi">Select a town</div>
+  </div>
 
-    <!-- CHARTS -->
-    <div class="panel">
-      <h3>Analytics</h3>
+  <!-- CHARTS -->
+  <div class="panel">
+    <h3>Analytics</h3>
+    <canvas id="conditionChart" height="130"></canvas>
+    <canvas id="facilityChart" height="130"></canvas>
+  </div>
 
-      <canvas id="conditionChart" height="150"></canvas>
-      <canvas id="facilityChart" height="150" style="margin-top:15px;"></canvas>
+  <!-- LEGEND -->
+  <div class="panel">
+    <h3>Legend</h3>
 
-      <!-- EXPORT BUTTONS -->
-      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
-        <button onclick="downloadCSV()" class="btn-export">Download Data (CSV)</button>
-        <button onclick="downloadChart('conditionChart','condition_chart')" class="btn-export">Download Condition Chart</button>
-        <button onclick="downloadChart('facilityChart','facility_chart')" class="btn-export">Download Facility Chart</button>
-      </div>
-    </div>
+    <div class="legend-item"><span class="dot green"></span> Good</div>
+    <div class="legend-item"><span class="dot yellow"></span> Fair</div>
+    <div class="legend-item"><span class="dot red"></span> Poor</div>
+    <div class="legend-item"><span class="dot grey"></span> Unknown</div>
 
-    <!-- LEGEND -->
-    <div class="panel">
-      <h3>Legend</h3>
+    <hr>
 
-      <strong>Condition</strong>
+    <div class="legend-item"><i class="fa fa-school"></i> School</div>
+    <div class="legend-item"><i class="fa fa-hospital"></i> Health</div>
+    <div class="legend-item"><i class="fa fa-droplet"></i> Water</div>
+    <div class="legend-item"><i class="fa fa-toilet"></i> Sanitation</div>
 
-      <div class="legend-item"><span class="legend-dot" style="background:#2ecc71"></span> Good</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#f1c40f"></span> Fair</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span> Poor</div>
-      <div class="legend-item"><span class="legend-dot" style="background:#95a5a6"></span> Unknown</div>
+  </div>
 
-      <hr>
+</aside>
 
-      <strong>Facility Type</strong>
-
-      <div class="legend-item"><i class="fa fa-school"></i> School</div>
-      <div class="legend-item"><i class="fa fa-hospital"></i> Health</div>
-      <div class="legend-item"><i class="fa fa-droplet"></i> Water</div>
-      <div class="legend-item"><i class="fa fa-toilet"></i> Sanitation</div>
-
-      <hr>
-
-      <div class="legend-item">
-        <span class="legend-swatch settlement-swatch"></span> Settlements
-      </div>
-
-      <div class="legend-item">
-        <span class="legend-cluster">12</span> Clustered Facilities
-      </div>
-    </div>
-
-  </aside>
-
-  <!-- ===== MAP ===== -->
-  <section class="map-section">
-    <div id="map"></div>
-  </section>
+<section class="map-section">
+  <div id="map"></div>
+</section>
 
 </main>
 
-<!-- ================= FOOTER ================= -->
-<footer class="footer">
-
-  <div class="footer-inner">
-
-    <div class="footer-left">
-      <strong>UN-HABITAT</strong><br>
-      Urban Data & Analytics Unit<br>
-      Nairobi, Kenya
-    </div>
-
-    <div class="footer-center">
-      Namibia Informal Settlements Facilities Mapping<br>
-      <small id="lastUpdated">Last updated: --</small>
-    </div>
-
-    <div class="footer-right">
-      <small>Data Sources: Field Surveys | GIS | UN-Habitat</small><br>
-      <a href="https://unhabitat.org" target="_blank">UN-Habitat</a> |
-      <a href="https://github.com/dau-proj/Namibia_Informal_Settlements_Facilities_Mapping" target="_blank">Repository</a>
-    </div>
-
-  </div>
-
-  <div class="footer-disclaimer">
-    Disclaimer: Boundaries and names do not imply official endorsement by the United Nations.
-  </div>
-
-</footer>
-
-<!-- ================= JS ================= -->
 <script src="js/app.js"></script>
-
-<script>
-  // LAST UPDATED
-  const el = document.getElementById("lastUpdated");
-  const now = new Date();
-  el.innerText = "Last updated: " + now.toDateString();
-</script>
 
 </body>
 </html>
