@@ -305,3 +305,61 @@ function downloadChart(id, name) {
 // =====================
 document.getElementById("facilityFilter").onchange = renderFilteredData;
 document.getElementById("conditionFilter").onchange = renderFilteredData;
+
+
+// =====================
+// PDF REPORT
+// =====================
+async function generatePDF() {
+
+    const { jsPDF } = window.jspdf;
+
+    let doc = new jsPDF();
+
+    // ===== TITLE =====
+    doc.setFontSize(16);
+    doc.text("UN-HABITAT", 10, 15);
+
+    doc.setFontSize(12);
+    doc.text("Namibia Informal Settlements Facilities Mapping", 10, 22);
+
+    // ===== DATE =====
+    let date = new Date().toDateString();
+    doc.setFontSize(10);
+    doc.text("Generated: " + date, 10, 28);
+
+    // ===== FILTERS =====
+    let facility = document.getElementById("facilityFilter").value || "All";
+    let condition = document.getElementById("conditionFilter").value || "All";
+    let town = document.getElementById("townSelect").value || "All";
+
+    doc.text(`Filters → Facility: ${facility}, Condition: ${condition}, Town: ${town}`, 10, 35);
+
+    // ===== KPI TEXT =====
+    let kpiText = document.getElementById("kpi").innerText;
+
+    doc.setFontSize(11);
+    doc.text("KPI Summary:", 10, 45);
+    doc.setFontSize(10);
+    doc.text(kpiText, 10, 52);
+
+    // ===== CONDITION CHART =====
+    let condCanvas = document.getElementById("conditionChart");
+    let condImg = condCanvas.toDataURL("image/png");
+
+    doc.addImage(condImg, 'PNG', 10, 70, 80, 60);
+
+    // ===== FACILITY CHART =====
+    let facCanvas = document.getElementById("facilityChart");
+    let facImg = facCanvas.toDataURL("image/png");
+
+    doc.addImage(facImg, 'PNG', 110, 70, 80, 60);
+
+    // ===== FOOTER =====
+    doc.setFontSize(8);
+    doc.text("UN-Habitat | Urban Data & Analytics Unit", 10, 140);
+    doc.text("Disclaimer: Data for planning purposes only", 10, 145);
+
+    // ===== SAVE =====
+    doc.save("Namibia_Facilities_Report.pdf");
+}
