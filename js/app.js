@@ -156,3 +156,6 @@ function buildTownDropdown(){
 // ================= EVENTS =================
 facilityFilter.onchange=renderData;
 conditionFilter.onchange=renderData;
+
+background:${getColor(p.Condition)}
+<i class="fa ${getIcon(p.Facility)}"></i>
