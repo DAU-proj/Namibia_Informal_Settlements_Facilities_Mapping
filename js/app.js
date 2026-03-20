@@ -1,8 +1,12 @@
 // ================= MAP =================
-var map = L.map('map');
+const map = L.map('map', {
+  center: [-22.56, 17.08],
+  zoom: 6,
+  minZoom: 5
+});
 
-var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-var sat = L.tileLayer(
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+const sat = L.tileLayer(
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 );
 
@@ -10,10 +14,10 @@ osm.addTo(map);
 L.control.layers({ "OSM": osm, "Satellite": sat }).addTo(map);
 
 // ================= CLUSTER =================
-var cluster = L.markerClusterGroup({
+const cluster = L.markerClusterGroup({
+  chunkedLoading: true,
   iconCreateFunction: function (cluster) {
-
-    var count = cluster.getChildCount();
+    const count = cluster.getChildCount();
 
     let size = "small";
     if (count > 50) size = "large";
@@ -27,135 +31,166 @@ var cluster = L.markerClusterGroup({
   }
 });
 
-var allFeatures=[], townLayers={}, allTowns=[];
+// ================= GLOBAL STATE =================
+let allFeatures = [];
+let townLayers = {};
+let allTowns = [];
+let boundaryLayer = null;
+
+// ================= LOAD BOUNDARY (FIXED) =================
+fetch('asset/settlement_boundary.geojson')
+  .then(res => res.json())
+  .then(data => {
+    boundaryLayer = L.geoJSON(data, {
+      style: { color: "#019EDF", weight: 2, fillOpacity: 0 }
+    }).addTo(map);
+
+    map.fitBounds(boundaryLayer.getBounds());
+    map.setMaxBounds(boundaryLayer.getBounds());
+    map.options.maxBoundsViscosity = 1.0;
+  });
 
 // ================= LOAD DATA =================
 fetch('data/namibia_dashboard.geojson')
-.then(res=>res.json())
-.then(data=>{
-  allFeatures=data.features;
-  populateFilters();
-  renderData();
-});
+  .then(res => res.json())
+  .then(data => {
+    allFeatures = data.features;
+    populateFilters();
+    renderData();
+  });
 
-// ================= LOAD BOUNDARY =================
-fetch('asset/settlement_boundary.geojson')
-.then(res=>res.json())
-.then(data=>{
-  let boundary=L.geoJSON(data,{
-    style:{ color:"#019EDF", weight:2, fillOpacity:0 }
-  }).addTo(map);
-
-  map.fitBounds(boundary.getBounds());
-  map.setMaxBounds(boundary.getBounds());
-});
-map.fitBounds(boundary.getBounds());
-map.setMaxBounds(boundary.getBounds());
-map.options.maxBoundsViscosity = 1.0;
 // ================= FILTERS =================
-function populateFilters(){
-  let fSet=new Set(), cSet=new Set();
+function populateFilters() {
+  const fSet = new Set();
+  const cSet = new Set();
 
-  allFeatures.forEach(f=>{
+  allFeatures.forEach(f => {
     fSet.add(f.properties.Facility);
     cSet.add(f.properties.Condition);
   });
 
-  fSet.forEach(v=>facilityFilter.add(new Option(v,v)));
-  cSet.forEach(v=>conditionFilter.add(new Option(v,v)));
+  facilityFilter.innerHTML = '<option value="">All Facilities</option>';
+  conditionFilter.innerHTML = '<option value="">All Conditions</option>';
+
+  fSet.forEach(v => facilityFilter.add(new Option(v, v)));
+  cSet.forEach(v => conditionFilter.add(new Option(v, v)));
 }
 
 // ================= COLOR =================
-function getColor(cond){
-  cond=(cond||"").toLowerCase();
-  if(cond.includes("good")) return "#2ecc71";
-  if(cond.includes("fair")) return "#f1c40f";
-  if(cond.includes("poor")) return "#e74c3c";
+function getColor(cond) {
+  cond = (cond || "").toLowerCase();
+  if (cond.includes("good")) return "#2ecc71";
+  if (cond.includes("fair")) return "#f1c40f";
+  if (cond.includes("poor")) return "#e74c3c";
   return "#95a5a6";
 }
 
 // ================= ICON =================
-function getIcon(f){
-  f=(f||"").toLowerCase();
-  if(f.includes("school")) return "fa-school";
-  if(f.includes("health")) return "fa-hospital";
-  if(f.includes("water")) return "fa-droplet";
-  if(f.includes("toilet")) return "fa-toilet";
+function getIcon(f) {
+  f = (f || "").toLowerCase();
+  if (f.includes("school")) return "fa-school";
+  if (f.includes("health")) return "fa-hospital";
+  if (f.includes("water")) return "fa-droplet";
+  if (f.includes("toilet")) return "fa-toilet";
   return "fa-location-dot";
 }
 
-background:${getColor(p.Condition)}
-<i class="fa ${getIcon(p.Facility)}"></i>
 // ================= RENDER =================
-function renderData(){
+function renderData() {
 
   cluster.clearLayers();
-  townLayers={}; allTowns=[];
+  townLayers = {};
+  allTowns = [];
 
-  let fval=facilityFilter.value.toLowerCase();
-  let cval=conditionFilter.value.toLowerCase();
+  const fval = facilityFilter.value.toLowerCase();
+  const cval = conditionFilter.value.toLowerCase();
 
-  let filtered=allFeatures.filter(f=>{
-    let f1=(f.properties.Facility||"").toLowerCase();
-    let c1=(f.properties.Condition||"").toLowerCase();
-    return (!fval||f1.includes(fval)) && (!cval||c1.includes(cval));
+  let filtered = allFeatures.filter(f => {
+    const f1 = (f.properties.Facility || "").toLowerCase();
+    const c1 = (f.properties.Condition || "").toLowerCase();
+
+    return (!fval || f1.includes(fval)) &&
+           (!cval || c1.includes(cval));
   });
 
-  filtered.forEach(f=>{
+  filtered.forEach(f => {
 
-    let p=f.properties;
-    let latlng=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
+    const p = f.properties;
+    const latlng = [f.geometry.coordinates[1], f.geometry.coordinates[0]];
 
-    let marker=L.marker(latlng,{
-      icon:L.divIcon({
-        html:`<div class="marker-icon" style="background:${getColor(p.Condition)}">
-          <i class="fa ${getIcon(p.Facility)}"></i>
-        </div>`
+    const color = getColor(p.Condition);
+
+    // ===== MARKER =====
+    const marker = L.marker(latlng, {
+      icon: L.divIcon({
+        html: `
+          <div class="marker-icon" style="background:${color}">
+            <i class="fa ${getIcon(p.Facility)}"></i>
+          </div>
+        `,
+        className: ""
       })
     });
 
+    // ===== BUFFER (NEW - your requirement restored) =====
+    const buffer = L.circle(latlng, {
+      radius: 300,
+      color: color,
+      weight: 1,
+      fillOpacity: 0.1
+    });
+
+    const combined = L.layerGroup([buffer, marker]);
+
+    // ===== POPUP =====
     marker.bindPopup(`
       <div>
-        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" style="width:100%" onerror="this.style.display='none'">`:""}
-        <b>Town:</b> ${p.Town}<br>
-        <b>Facility:</b> ${p.Facility}<br>
-        <b>Status:</b> ${p["Is the facility functional?"]}<br>
-        <b>Condition:</b> ${p.Condition}
+        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" style="width:100%" onerror="this.style.display='none'">` : ""}
+        <b>Town:</b> ${p.Town || "N/A"}<br>
+        <b>Facility:</b> ${p.Facility || "N/A"}<br>
+        <b>Status:</b> ${p["Is the facility functional?"] || "N/A"}<br>
+        <b>Condition:</b> ${p.Condition || "N/A"}
       </div>
     `);
 
-    let town=(p.Town||"").trim();
-    if(!townLayers[town]){
-      townLayers[town]=[];
+    // ===== TOWN GROUPING =====
+    const town = (p.Town || "").trim();
+
+    if (!townLayers[town]) {
+      townLayers[town] = [];
       allTowns.push(town);
     }
 
-    townLayers[town].push(marker);
-    cluster.addLayer(marker);
+    townLayers[town].push(combined);
+
+    cluster.addLayer(combined);
   });
 
   map.addLayer(cluster);
+
   buildTownDropdown();
 }
 
 // ================= TOWN =================
-function buildTownDropdown(){
-  townSelect.innerHTML='<option>Select Town</option>';
+function buildTownDropdown() {
 
-  [...new Set(allTowns)].sort().forEach(t=>{
-    townSelect.add(new Option(t,t));
+  townSelect.innerHTML = '<option value="">Select Town</option>';
+
+  [...new Set(allTowns)].sort().forEach(t => {
+    townSelect.add(new Option(t, t));
   });
 
-  townSelect.onchange=function(){
-    let t=this.value;
-    let group=L.featureGroup(townLayers[t]||[]);
+  townSelect.onchange = function () {
+
+    const t = this.value;
+
+    if (!t || !townLayers[t]) return;
+
+    const group = L.featureGroup(townLayers[t]);
     map.fitBounds(group.getBounds());
   };
 }
 
 // ================= EVENTS =================
-facilityFilter.onchange=renderData;
-conditionFilter.onchange=renderData;
-
-background:${getColor(p.Condition)}
-<i class="fa ${getIcon(p.Facility)}"></i>
+facilityFilter.onchange = renderData;
+conditionFilter.onchange = renderData;
