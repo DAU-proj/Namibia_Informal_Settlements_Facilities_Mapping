@@ -3,113 +3,178 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>UN-HABITAT | Namibia Informal Settlements Facilities Mapping</title>
 
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
-
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <!-- Marker Cluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
   <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
 
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Styles -->
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+
+    <div class="brand">
+      <img src="./asset/unhabitat_logo.png" class="brand-logo">
+      <div>
+        <div class="brand-name">UN-HABITAT</div>
+        <div class="brand-subtitle">Urban Data & Analytics Dashboard</div>
+      </div>
+    </div>
+
+  </div>
+</header>
+
+<!-- ================= TITLE ================= -->
+<section class="hero">
+  <div class="hero-inner">
+    <h1>Namibia Informal Settlements Facilities Mapping</h1>
+    <p>Interactive dashboard for facility condition monitoring and spatial analysis</p>
+  </div>
+</section>
+
+<!-- ================= MAIN ================= -->
+<main class="page">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside class="sidebar">
+
+    <!-- FILTERS -->
+    <div class="panel">
+      <h3>Filters</h3>
+
+      <label>Facility Type</label>
+      <select id="facilityFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
+
+      <label>Condition</label>
+      <select id="conditionFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
+
+      <label>Town</label>
+      <select id="townSelect" class="dropdown">
+        <option value="">-- Select Town --</option>
+      </select>
+    </div>
+
+    <!-- KPI -->
+    <div class="panel">
+      <h3>KPI Analytics</h3>
+      <div id="kpi">Select a town to view statistics</div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="panel">
+      <h3>Analytics</h3>
+
+      <canvas id="conditionChart" height="150"></canvas>
+      <canvas id="facilityChart" height="150" style="margin-top:15px;"></canvas>
+
+      <!-- EXPORT BUTTONS -->
+      <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+        <button onclick="downloadCSV()" class="btn-export">Download Data (CSV)</button>
+        <button onclick="downloadChart('conditionChart','condition_chart')" class="btn-export">Download Condition Chart</button>
+        <button onclick="downloadChart('facilityChart','facility_chart')" class="btn-export">Download Facility Chart</button>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="panel">
+      <h3>Legend</h3>
+
+      <strong>Condition</strong>
+
+      <div class="legend-item"><span class="legend-dot" style="background:#2ecc71"></span> Good</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#f1c40f"></span> Fair</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span> Poor</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#95a5a6"></span> Unknown</div>
+
+      <hr>
+
+      <strong>Facility Type</strong>
+
+      <div class="legend-item"><i class="fa fa-school"></i> School</div>
+      <div class="legend-item"><i class="fa fa-hospital"></i> Health</div>
+      <div class="legend-item"><i class="fa fa-droplet"></i> Water</div>
+      <div class="legend-item"><i class="fa fa-toilet"></i> Sanitation</div>
+
+      <hr>
+
+      <div class="legend-item">
+        <span class="legend-swatch settlement-swatch"></span> Settlements
+      </div>
+
+      <div class="legend-item">
+        <span class="legend-cluster">12</span> Clustered Facilities
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ===== MAP ===== -->
+  <section class="map-section">
+    <div id="map"></div>
+  </section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
 <footer class="footer">
+
   <div class="footer-inner">
 
-    <!-- LEFT -->
     <div class="footer-left">
       <strong>UN-HABITAT</strong><br>
-     Data & Analytics Unit<br>
-          </div>
+      Urban Data & Analytics Unit<br>
+      Nairobi, Kenya
+    </div>
 
-    <!-- CENTER -->
     <div class="footer-center">
-      <span>Namibia Informal Settlements Facilities Mapping</span><br>
+      Namibia Informal Settlements Facilities Mapping<br>
       <small id="lastUpdated">Last updated: --</small>
     </div>
 
-    <!-- RIGHT -->
     <div class="footer-right">
-      <span>Data Sources:</span><br>
-      <small>Field Surveys | GIS Analysis | UN-Habitat</small><br>
+      <small>Data Sources: Field Surveys | GIS | UN-Habitat</small><br>
       <a href="https://unhabitat.org" target="_blank">UN-Habitat</a> |
-      <a href="https://github.com/dau-proj/Namibia_Informal_Settlements_Facilities_Mapping" target="_blank">Project Repository</a>
+      <a href="https://github.com/dau-proj/Namibia_Informal_Settlements_Facilities_Mapping" target="_blank">Repository</a>
     </div>
 
   </div>
 
-  <!-- DISCLAIMER -->
   <div class="footer-disclaimer">
-    Disclaimer: The boundaries, names, and designations used on this map do not imply official endorsement or acceptance by the United Nations. Data is provided for planning and analytical purposes only.
+    Disclaimer: Boundaries and names do not imply official endorsement by the United Nations.
   </div>
-</footer>  
-  
-<body>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <img src="./asset/unhabitat_logo.png" alt="UN-Habitat logo" class="brand-logo">
-        <div class="brand-text">
-          <div class="brand-name">UN-HABITAT</div>
-          <div class="brand-subtitle">Data and Analytics Dashboard</div>
-        </div>
-      </div>
+</footer>
 
-      <nav class="topnav">
-        <a href="#" class="topnav-link active">Dashboard</a>
-      </nav>
-    </div>
-  </header>
+<!-- ================= JS ================= -->
+<script src="js/app.js"></script>
 
-  <section class="hero">
-    <div class="hero-inner">
-      <h1>Namibia Informal Settlements Facilities Mapping</h1>
-      <p>An overview of facilities, conditions, and settlement-level spatial analytics.</p>
-    </div>
-  </section>
+<script>
+  // LAST UPDATED
+  const el = document.getElementById("lastUpdated");
+  const now = new Date();
+  el.innerText = "Last updated: " + now.toDateString();
+</script>
 
-  <main class="page">
-    <aside class="sidebar">
-      <div class="panel">
-        <h3>Search</h3>
-        <input type="text" id="searchBox" placeholder="Search town...">
-      </div>
-
-      <div class="panel">
-        <h3>Towns</h3>
-        <div id="townList" class="town-list"></div>
-      </div>
-
-      <div class="panel">
-        <h3>KPI Analytics</h3>
-        <div id="kpi" class="kpi-wrap">Click a town to view statistics.</div>
-      </div>
-
-      <div class="panel">
-        <h3>Legend</h3>
-        <div class="legend-item">
-          <span class="legend-dot facility-dot"></span>
-          <span>Facilities</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-swatch settlement-swatch"></span>
-          <span>Settlements</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-cluster">12</span>
-          <span>Clustered facilities</span>
-        </div>
-      </div>
-    </aside>
-
-    <section class="map-section">
-      <div id="map"></div>
-    </section>
-  </main>
-
-  <script src="js/app.js"></script>
 </body>
 </html>
