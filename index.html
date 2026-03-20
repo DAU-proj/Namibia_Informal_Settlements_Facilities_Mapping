@@ -14,89 +14,64 @@
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <link rel="stylesheet" href="css/styles.css">
 </head>
 
 <body>
 
-<!-- TOP BAR -->
 <header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand">
-      <img src="./asset/unhabitat_logo.png" class="brand-logo">
-      <div>
-        <div class="brand-name">UN-HABITAT</div>
-        <div class="brand-subtitle">Urban Data & Analytics Unit</div>
-      </div>
+  <div class="brand">
+    <img src="./asset/unhabitat_logo.png" class="brand-logo">
+    <div>
+      <div class="brand-name">UN-HABITAT</div>
+      <div class="brand-subtitle">Urban Data & Analytics Unit</div>
     </div>
   </div>
 </header>
 
-<!-- TITLE -->
 <section class="hero">
-  <div class="hero-inner">
-    <h1>Namibia Informal Settlements Facilities Mapping</h1>
-    <p>Spatial analytics dashboard for facility condition monitoring</p>
-  </div>
+  <h1>Namibia Informal Settlements Facilities Mapping</h1>
 </section>
 
-<!-- MAIN -->
 <main class="page">
 
 <aside class="sidebar">
 
-  <!-- FILTERS -->
-  <div class="panel">
-    <h3>Filters</h3>
+<div class="panel">
+  <h3>Filters</h3>
 
-    <label>Facility Type</label>
-    <select id="facilityFilter" class="dropdown">
-      <option value="">All</option>
-    </select>
+  <label>Facility</label>
+  <select id="facilityFilter" class="dropdown">
+    <option value="">All</option>
+  </select>
 
-    <label>Condition</label>
-    <select id="conditionFilter" class="dropdown">
-      <option value="">All</option>
-    </select>
+  <label>Condition</label>
+  <select id="conditionFilter" class="dropdown">
+    <option value="">All</option>
+  </select>
 
-    <label>Town</label>
-    <select id="townSelect" class="dropdown">
-      <option value="">-- Select Town --</option>
-    </select>
-  </div>
+  <label>Town</label>
+  <select id="townSelect" class="dropdown">
+    <option value="">Select Town</option>
+  </select>
+</div>
 
-  <!-- KPI -->
-  <div class="panel">
-    <h3>KPI</h3>
-    <div id="kpi">Select a town</div>
-  </div>
+<div class="panel">
+  <h3>Legend</h3>
 
-  <!-- CHARTS -->
-  <div class="panel">
-    <h3>Analytics</h3>
-    <canvas id="conditionChart" height="130"></canvas>
-    <canvas id="facilityChart" height="130"></canvas>
-  </div>
+  <b>Condition</b><br>
+  <span class="dot green"></span> Good<br>
+  <span class="dot yellow"></span> Fair<br>
+  <span class="dot red"></span> Poor<br>
+  <span class="dot grey"></span> Unknown<br><br>
 
-  <!-- LEGEND -->
-  <div class="panel">
-    <h3>Legend</h3>
+  <b>Facility</b><br>
+  <i class="fa fa-school"></i> School<br>
+  <i class="fa fa-hospital"></i> Health<br>
+  <i class="fa fa-droplet"></i> Water<br>
+  <i class="fa fa-toilet"></i> Sanitation<br>
 
-    <div class="legend-item"><span class="dot green"></span> Good</div>
-    <div class="legend-item"><span class="dot yellow"></span> Fair</div>
-    <div class="legend-item"><span class="dot red"></span> Poor</div>
-    <div class="legend-item"><span class="dot grey"></span> Unknown</div>
-
-    <hr>
-
-    <div class="legend-item"><i class="fa fa-school"></i> School</div>
-    <div class="legend-item"><i class="fa fa-hospital"></i> Health</div>
-    <div class="legend-item"><i class="fa fa-droplet"></i> Water</div>
-    <div class="legend-item"><i class="fa fa-toilet"></i> Sanitation</div>
-
-  </div>
+</div>
 
 </aside>
 
