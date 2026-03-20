@@ -84,6 +84,8 @@ function getIcon(f){
   return "fa-location-dot";
 }
 
+background:${getColor(p.Condition)}
+<i class="fa ${getIcon(p.Facility)}"></i>
 // ================= RENDER =================
 function renderData(){
 
