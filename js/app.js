@@ -11,10 +11,17 @@ L.control.layers({ "OSM": osm, "Satellite": sat }).addTo(map);
 
 // ================= CLUSTER =================
 var cluster = L.markerClusterGroup({
-  iconCreateFunction: function(cluster) {
+  iconCreateFunction: function (cluster) {
+
+    var count = cluster.getChildCount();
+
+    let size = "small";
+    if (count > 50) size = "large";
+    else if (count > 20) size = "medium";
+
     return L.divIcon({
-      html: `<div class="cluster-circle">${cluster.getChildCount()}</div>`,
-      className: 'cluster-icon',
+      html: `<div><span>${count}</span></div>`,
+      className: `marker-cluster marker-cluster-${size}`,
       iconSize: L.point(40, 40)
     });
   }
