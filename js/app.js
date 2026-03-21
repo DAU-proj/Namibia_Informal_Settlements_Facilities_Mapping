@@ -42,7 +42,23 @@ fetch('data/settlements.geojson')
 .then(res => res.json())
 .then(data => {
 
-  // ================= NAMIBIA BOUNDARY =================
+  // ================= FIX COORDINATE ORDER =================
+  function fixCoords(coords) {
+    return coords.map(c => Array.isArray(c[0]) ? fixCoords(c) : [c[1], c[0]]);
+  }
+
+  data.features.forEach(f => {
+    if (f.geometry.type === "Polygon") {
+      f.geometry.coordinates = f.geometry.coordinates.map(ring => fixCoords(ring));
+    }
+    if (f.geometry.type === "MultiPolygon") {
+      f.geometry.coordinates = f.geometry.coordinates.map(poly =>
+        poly.map(ring => fixCoords(ring))
+      );
+    }
+  });
+
+  // ================= DRAW NAMIBIA =================
   let boundary = L.geoJSON(data, {
     style: {
       color: "#2c3e50",
@@ -54,9 +70,8 @@ fetch('data/settlements.geojson')
 
   let bounds = boundary.getBounds();
 
-  // ================= CREATE MASK CORRECTLY =================
+  // ================= CREATE MASK =================
 
-  // World polygon
   let outer = [
     [-90, -180],
     [-90, 180],
@@ -65,7 +80,6 @@ fetch('data/settlements.geojson')
     [-90, -180]
   ];
 
-  // Collect Namibia polygons as holes
   let holes = [];
 
   data.features.forEach(f => {
@@ -82,11 +96,10 @@ fetch('data/settlements.geojson')
 
   });
 
-  // 🔥 IMPORTANT: Reverse holes (fix orientation issue)
-  holes = holes.map(ring => ring.slice().reverse());
+  // reverse for correct hole behavior
+  holes = holes.map(r => r.slice().reverse());
 
-  // Create mask
-  let mask = L.polygon([outer, ...holes], {
+  L.polygon([outer, ...holes], {
     fillColor: "#000",
     fillOpacity: 0.4,
     stroke: false,
@@ -99,6 +112,8 @@ fetch('data/settlements.geojson')
   map.options.maxBoundsViscosity = 1.0;
 
 });
+
+
 // FILTERS
 function populateFilters(){
   let fSet=new Set(), cSet=new Set();
