@@ -46,12 +46,14 @@ fetch('data/settlements.geojson')
 .then(data => {
 
   let boundary = L.geoJSON(data, {
-    style: {
-      color: "#137b85",
-      weight: 2,
-      fillOpacity: 0
-    }
-  }).addTo(map);
+style: {
+  color: "#7f8c8d",
+  weight: 2,
+  opacity: 0.6,
+  fillOpacity: 0
+}
+  })
+   .addTo(map);
 
   map.fitBounds(boundary.getBounds());
   map.setMaxBounds(boundary.getBounds());
