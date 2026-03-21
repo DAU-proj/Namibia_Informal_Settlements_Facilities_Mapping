@@ -42,19 +42,7 @@ fetch('data/settlements.geojson')
 .then(res => res.json())
 .then(data => {
 
-  // ================= CORRECT COORDINATES (DEEP FIX) =================
-  function fixCoords(coords) {
-    if (typeof coords[0] === 'number') {
-      return [coords[1], coords[0]]; // swap
-    }
-    return coords.map(fixCoords);
-  }
-
-  data.features.forEach(f => {
-    f.geometry.coordinates = fixCoords(f.geometry.coordinates);
-  });
-
-  // ================= DRAW BOUNDARY =================
+  // DRAW BOUNDARY (NO coordinate manipulation)
   let boundary = L.geoJSON(data, {
     style: {
       color: "#2c3e50",
@@ -66,31 +54,27 @@ fetch('data/settlements.geojson')
 
   let bounds = boundary.getBounds();
 
-  // ================= CREATE MASK =================
-  let outer = [
+  // ================= MASK =================
+  let world = [
     [-90, -180],
     [-90, 180],
     [90, 180],
-    [90, -180],
-    [-90, -180]
+    [90, -180]
   ];
 
-  let holes = [];
+  // Use Leaflet bounds directly (safe)
+  let southWest = bounds.getSouthWest();
+  let northEast = bounds.getNorthEast();
 
-  data.features.forEach(f => {
-    if (f.geometry.type === "Polygon") {
-      holes.push(f.geometry.coordinates[0]);
-    }
-    if (f.geometry.type === "MultiPolygon") {
-      f.geometry.coordinates.forEach(poly => {
-        holes.push(poly[0]);
-      });
-    }
-  });
+  let hole = [
+    [southWest.lat, southWest.lng],
+    [northEast.lat, southWest.lng],
+    [northEast.lat, northEast.lng],
+    [southWest.lat, northEast.lng]
+  ];
 
-  holes = holes.map(r => r.slice().reverse());
-
-  L.polygon([outer, ...holes], {
+  // Create mask (rectangle-based, robust)
+  L.polygon([world, hole], {
     fillColor: "#000",
     fillOpacity: 0.4,
     stroke: false,
@@ -102,8 +86,8 @@ fetch('data/settlements.geojson')
   map.setMaxBounds(bounds);
   map.options.maxBoundsViscosity = 1.0;
 
-});
-
+})
+.catch(err => console.error("Boundary error:", err));
 // FILTERS
 function populateFilters(){
   let fSet=new Set(), cSet=new Set();
