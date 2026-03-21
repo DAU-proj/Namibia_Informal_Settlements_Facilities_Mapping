@@ -46,8 +46,8 @@ fetch('data/settlements.geojson')
   let boundary = L.geoJSON(data, {
     style: {
       color: "#2c3e50",
-      weight: 3,
-      opacity: 0.9,
+      weight: 2,
+      opacity: 0.6,
       fillOpacity: 0
     }
   }).addTo(map);
@@ -76,7 +76,7 @@ fetch('data/settlements.geojson')
   // Create mask (rectangle-based, robust)
   L.polygon([world, hole], {
     fillColor: "#000",
-    fillOpacity: 0.4,
+    fillOpacity: 0.2,
     stroke: false,
     interactive: false
   }).addTo(map);
