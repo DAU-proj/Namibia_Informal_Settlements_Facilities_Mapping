@@ -47,7 +47,7 @@ fetch('data/settlements.geojson')
 
   let boundary = L.geoJSON(data, {
     style: {
-      color: "#019EDF",
+      color: "#137b85,
       weight: 2,
       fillOpacity: 0
     }
