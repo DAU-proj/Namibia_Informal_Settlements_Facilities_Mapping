@@ -1,4 +1,4 @@
-var map = L.map('map');
+var map = L.map('map').setView([-22, 17], 6);
 
 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
 var sat = L.tileLayer(
@@ -38,16 +38,28 @@ fetch('data/namibia_dashboard.geojson')
 });
 
 // LOAD BOUNDARY + LOCK
-fetch('asset/settlement_boundary.geojson')
-.then(res=>res.json())
-.then(data=>{
-  let boundary=L.geoJSON(data,{
-    style:{ color:"#019EDF", weight:2, fillOpacity:0 }
+fetch('data/settlements.geojson')
+.then(res => {
+  if (!res.ok) throw new Error("Boundary not found");
+  return res.json();
+})
+.then(data => {
+
+  let boundary = L.geoJSON(data, {
+    style: {
+      color: "#019EDF",
+      weight: 2,
+      fillOpacity: 0
+    }
   }).addTo(map);
 
   map.fitBounds(boundary.getBounds());
   map.setMaxBounds(boundary.getBounds());
   map.options.maxBoundsViscosity = 1.0;
+
+})
+.catch(err => {
+  console.error("Boundary load failed:", err);
 });
 
 // FILTERS
