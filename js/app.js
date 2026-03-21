@@ -82,9 +82,11 @@ fetch('data/settlements.geojson')
   }).addTo(map);
 
   // ================= LOCK MAP =================
-  map.fitBounds(bounds);
-  map.setMaxBounds(bounds);
-  map.options.maxBoundsViscosity = 1.0;
+let paddedBounds = bounds.pad(0.3);
+
+map.fitBounds(paddedBounds);
+map.setMaxBounds(paddedBounds);
+map.options.maxBoundsViscosity = 0.6;
 
 })
 .catch(err => console.error("Boundary error:", err));
