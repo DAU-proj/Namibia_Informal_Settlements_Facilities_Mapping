@@ -42,23 +42,19 @@ fetch('data/settlements.geojson')
 .then(res => res.json())
 .then(data => {
 
-  // ================= FIX COORDINATE ORDER =================
+  // ================= CORRECT COORDINATES (DEEP FIX) =================
   function fixCoords(coords) {
-    return coords.map(c => Array.isArray(c[0]) ? fixCoords(c) : [c[1], c[0]]);
+    if (typeof coords[0] === 'number') {
+      return [coords[1], coords[0]]; // swap
+    }
+    return coords.map(fixCoords);
   }
 
   data.features.forEach(f => {
-    if (f.geometry.type === "Polygon") {
-      f.geometry.coordinates = f.geometry.coordinates.map(ring => fixCoords(ring));
-    }
-    if (f.geometry.type === "MultiPolygon") {
-      f.geometry.coordinates = f.geometry.coordinates.map(poly =>
-        poly.map(ring => fixCoords(ring))
-      );
-    }
+    f.geometry.coordinates = fixCoords(f.geometry.coordinates);
   });
 
-  // ================= DRAW NAMIBIA =================
+  // ================= DRAW BOUNDARY =================
   let boundary = L.geoJSON(data, {
     style: {
       color: "#2c3e50",
@@ -71,7 +67,6 @@ fetch('data/settlements.geojson')
   let bounds = boundary.getBounds();
 
   // ================= CREATE MASK =================
-
   let outer = [
     [-90, -180],
     [-90, 180],
@@ -83,20 +78,16 @@ fetch('data/settlements.geojson')
   let holes = [];
 
   data.features.forEach(f => {
-
     if (f.geometry.type === "Polygon") {
       holes.push(f.geometry.coordinates[0]);
     }
-
     if (f.geometry.type === "MultiPolygon") {
       f.geometry.coordinates.forEach(poly => {
         holes.push(poly[0]);
       });
     }
-
   });
 
-  // reverse for correct hole behavior
   holes = holes.map(r => r.slice().reverse());
 
   L.polygon([outer, ...holes], {
@@ -112,7 +103,6 @@ fetch('data/settlements.geojson')
   map.options.maxBoundsViscosity = 1.0;
 
 });
-
 
 // FILTERS
 function populateFilters(){
