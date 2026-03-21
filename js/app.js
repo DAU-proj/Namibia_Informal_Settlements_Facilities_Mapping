@@ -142,13 +142,18 @@ function renderData(){
     let p=f.properties;
     let latlng=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
 
-    let marker=L.marker(latlng,{
-      icon:L.divIcon({
-        html:`<div class="marker-icon" style="background:${getColor(p.Condition)}">
-          <i class="fa ${getIcon(p.Facility)}"></i>
-        </div>`
-      })
-    });
+let marker = L.marker(latlng, {
+  icon: L.divIcon({
+    className: "custom-marker",
+    html: `
+      <div class="marker-wrapper ${p.Condition.toLowerCase()}">
+        <i class="fa ${getIcon(p.Facility)}"></i>
+      </div>
+    `,
+    iconSize: [30, 30],
+    iconAnchor: [15, 15]
+  })
+});
 
     marker.bindPopup(`
       <div>
