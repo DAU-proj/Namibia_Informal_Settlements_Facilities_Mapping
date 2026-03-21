@@ -178,6 +178,36 @@ body {
 
   .footer-right {
     text-align: center;
+
+    .marker-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  border: 2px solid white;
+}
+
+/* CONDITION COLORS */
+.marker-wrapper.good {
+  background-color: #2ecc71;
+}
+
+.marker-wrapper.fair {
+  background-color: #f1c40f;
+}
+
+.marker-wrapper.poor {
+  background-color: #e74c3c;
+}
+
+/* fallback */
+.marker-wrapper.unknown {
+  background-color: #95a5a6;
+}
   }
 }
 
