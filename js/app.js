@@ -1,233 +1,236 @@
-var map = L.map('map').setView([-22, 17], 6);
+// ===============================
+// CONFIG
+// ===============================
+const CONFIG = {
+  center: [-22, 17],
+  zoom: 6,
+  dataUrl: 'data/namibia_dashboard.geojson',
+  boundaryUrl: 'data/settlements.geojson'
+};
 
-var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
-var sat = L.tileLayer(
- 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-);
+// ===============================
+// MAP MANAGER
+// ===============================
+const MapManager = {
+  map: null,
+  cluster: null,
+  baseLayers: {},
 
-osm.addTo(map);
-L.control.layers({ "OSM":osm, "Satellite":sat }).addTo(map);
+  init() {
+    this.map = L.map('map').setView(CONFIG.center, CONFIG.zoom);
 
-// CLUSTER (DAU STYLE)
-var cluster = L.markerClusterGroup({
-  iconCreateFunction: function (cluster) {
+    const light = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    ).addTo(this.map);
 
-    var count = cluster.getChildCount();
+    const sat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    );
 
-    let size = "small";
-    if (count > 50) size = "large";
-    else if (count > 20) size = "medium";
+    this.baseLayers = { "Light": light, "Satellite": sat };
+    L.control.layers(this.baseLayers).addTo(this.map);
 
-    return L.divIcon({
-      html: `<div><span>${count}</span></div>`,
-      className: `marker-cluster marker-cluster-${size}`,
-      iconSize: L.point(40, 40)
+    this.cluster = L.markerClusterGroup({
+      iconCreateFunction: cluster => {
+        const count = cluster.getChildCount();
+        return L.divIcon({
+          html: `<div class="cluster">${count}</div>`,
+          className: "cluster-wrapper",
+          iconSize: L.point(40, 40)
+        });
+      }
+    });
+
+    this.map.addLayer(this.cluster);
+  },
+
+  fitToBounds(bounds) {
+    const padded = bounds.pad(0.3);
+    this.map.fitBounds(padded);
+    this.map.setMaxBounds(padded);
+    this.map.options.maxBoundsViscosity = 0.6;
+  }
+};
+
+// ===============================
+// DATA MANAGER
+// ===============================
+const DataManager = {
+  features: [],
+
+  async load() {
+    const res = await fetch(CONFIG.dataUrl);
+    const data = await res.json();
+    this.features = data.features;
+  }
+};
+
+// ===============================
+// STYLE MANAGER
+// ===============================
+const StyleManager = {
+
+  getColor(condition) {
+    const c = (condition || "").toLowerCase();
+
+    if (c.includes("good")) return "#27ae60";
+    if (c.includes("average")) return "#f39c12";
+    if (c.includes("poor")) return "#c0392b";
+
+    return "#7f8c8d";
+  },
+
+  getIcon(facility) {
+    const f = (facility || "").toLowerCase();
+
+    if (f.includes("education")) return "fa-school";
+    if (f.includes("health")) return "fa-hospital";
+    if (f.includes("water")) return "fa-droplet";
+    if (f.includes("transport")) return "fa-bus";
+    if (f.includes("religious")) return "fa-church";
+    if (f.includes("waste")) return "fa-trash";
+
+    return "fa-location-dot";
+  },
+
+  createMarker(feature) {
+    const p = feature.properties;
+    const [lng, lat] = feature.geometry.coordinates;
+
+    const conditionClass = (p.Condition || "")
+      .toLowerCase()
+      .replace(" condition", "");
+
+    return L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: "",
+        html: `
+          <div class="marker ${conditionClass}">
+            <i class="fa-solid ${this.getIcon(p.Facility)}"></i>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      })
     });
   }
-});
+};
 
-var allFeatures=[], townLayers={}, allTowns=[];
+// ===============================
+// FILTER MANAGER
+// ===============================
+const FilterManager = {
+  facility: "",
+  condition: "",
 
-// LOAD DATA
-fetch('data/namibia_dashboard.geojson')
-.then(res=>res.json())
-.then(data=>{
-  allFeatures=data.features;
-  populateFilters();
-  renderData();
-});
+  apply(features) {
+    return features.filter(f => {
+      const fVal = (f.properties.Facility || "").toLowerCase();
+      const cVal = (f.properties.Condition || "").toLowerCase();
 
-// LOAD BOUNDARY + LOCK
-fetch('data/settlements.geojson')
-.then(res => res.json())
-.then(data => {
+      return (!this.facility || fVal.includes(this.facility)) &&
+             (!this.condition || cVal.includes(this.condition));
+    });
+  }
+};
 
-  // DRAW BOUNDARY (NO coordinate manipulation)
-  let boundary = L.geoJSON(data, {
-    style: {
-      color: "#2c3e50",
-      weight: 2,
-      opacity: 0.6,
-      fillOpacity: 0
-    }
-  }).addTo(map);
+// ===============================
+// RENDERER
+// ===============================
+const Renderer = {
 
-  let bounds = boundary.getBounds();
+  render(features) {
+    MapManager.cluster.clearLayers();
 
-  // ================= MASK =================
-  let world = [
-    [-90, -180],
-    [-90, 180],
-    [90, 180],
-    [90, -180]
-  ];
+    features.forEach(f => {
+      const marker = StyleManager.createMarker(f);
 
-  // Use Leaflet bounds directly (safe)
-  let southWest = bounds.getSouthWest();
-  let northEast = bounds.getNorthEast();
+      marker.bindPopup(this.createPopup(f.properties));
+      MapManager.cluster.addLayer(marker);
+    });
+  },
 
-  let hole = [
-    [southWest.lat, southWest.lng],
-    [northEast.lat, southWest.lng],
-    [northEast.lat, northEast.lng],
-    [southWest.lat, northEast.lng]
-  ];
-
-  // Create mask (rectangle-based, robust)
-  L.polygon([world, hole], {
-    fillColor: "#000",
-    fillOpacity: 0.2,
-    stroke: false,
-    interactive: false
-  }).addTo(map);
-
-  // ================= LOCK MAP =================
-let paddedBounds = bounds.pad(0.3);
-
-map.fitBounds(paddedBounds);
-map.setMaxBounds(paddedBounds);
-map.options.maxBoundsViscosity = 0.6;
-
-})
-.catch(err => console.error("Boundary error:", err));
-// FILTERS
-function populateFilters(){
-  let fSet=new Set(), cSet=new Set();
-
-  allFeatures.forEach(f=>{
-    fSet.add(f.properties.Facility);
-    cSet.add(f.properties.Condition);
-  });
-
-  fSet.forEach(v=>facilityFilter.add(new Option(v,v)));
-  cSet.forEach(v=>conditionFilter.add(new Option(v,v)));
-}
-
-// COLOR
-function getColor(cond){
-  cond=(cond||"").toLowerCase();
-  if(cond.includes("good")) return "#2ecc71";
-  if(cond.includes("fair")) return "#f1c40f";
-  if(cond.includes("poor")) return "#e74c3c";
-  return "#95a5a6";
-}
-
-// ICON
-function getIcon(f){
-  f=(f||"").toLowerCase();
-  if(f.includes("school")) return "fa-school";
-  if(f.includes("health")) return "fa-hospital";
-  if(f.includes("water")) return "fa-droplet";
-  if(f.includes("toilet")) return "fa-toilet";
-  return "fa-location-dot";
-}
-
-// RENDER
-function renderData(){
-
-  cluster.clearLayers();
-  townLayers={}; allTowns=[];
-
-  let fval=facilityFilter.value.toLowerCase();
-  let cval=conditionFilter.value.toLowerCase();
-
-  let filtered=allFeatures.filter(f=>{
-    let f1=(f.properties.Facility||"").toLowerCase();
-    let c1=(f.properties.Condition||"").toLowerCase();
-    return (!fval||f1.includes(fval)) && (!cval||c1.includes(cval));
-  });
-
-  filtered.forEach(f=>{
-
-    let p=f.properties;
-    let latlng=[f.geometry.coordinates[1],f.geometry.coordinates[0]];
-
-let marker = L.marker(latlng, {
-  icon: L.divIcon({
-    className: "custom-marker",
-    html: `
-      <div class="marker-wrapper ${p.Condition.toLowerCase()}">
-        <i class="fa ${getIcon(p.Facility)}"></i>
+  createPopup(p) {
+    return `
+      <div class="popup">
+        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}">` : ""}
+        <h4>${p.Facility}</h4>
+        <p><b>Town:</b> ${p.Town}</p>
+        <p><b>Condition:</b> ${p.Condition}</p>
+        <p><b>Status:</b> ${p["Is the facility functional?"]}</p>
       </div>
-    `,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
-  })
-});
+    `;
+  }
+};
 
-    marker.bindPopup(`
-      <div>
-        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" style="width:100%" onerror="this.style.display='none'">`:""}
-        <b>Town:</b> ${p.Town}<br>
-        <b>Facility:</b> ${p.Facility}<br>
-        <b>Status:</b> ${p["Is the facility functional?"]}<br>
-        <b>Condition:</b> ${p.Condition}
-      </div>
-    `);
+// ===============================
+// UI MANAGER
+// ===============================
+const UIManager = {
 
-    let town=(p.Town||"").trim();
-    if(!townLayers[town]){
-      townLayers[town]=[];
-      allTowns.push(town);
-    }
+  initFilters(features) {
+    const fSet = new Set();
+    const cSet = new Set();
 
-    townLayers[town].push(marker);
-    cluster.addLayer(marker);
-  });
-
-  map.addLayer(cluster);
-  buildTownDropdown();
-}
-
-// TOWN
-function buildTownDropdown(){
-  townSelect.innerHTML='<option>Select Town</option>';
-
-  [...new Set(allTowns)].sort().forEach(t=>{
-    townSelect.add(new Option(t,t));
-  });
-
-  townSelect.onchange=function(){
-    let t=this.value;
-    let group=L.featureGroup(townLayers[t]||[]);
-    map.fitBounds(group.getBounds());
-  };
-}
-
-// LEGEND INTERACTION
-document.querySelectorAll('.clickable').forEach(el=>{
-  el.onclick=function(){
-    let cond=this.dataset.condition || "";
-    conditionFilter.value=cond;
-
-    document.querySelectorAll('.clickable').forEach(i=>i.classList.remove('active'));
-    this.classList.add('active');
-
-    renderData();
-  };
-});
-
-// EVENTS
-facilityFilter.onchange=renderData;
-conditionFilter.onchange=renderData;
-
-
-// =====================
-// LAST UPDATED (AUTO)
-// =====================
-function updateLastUpdated() {
-    const el = document.getElementById("lastUpdated");
-    if (!el) return;
-
-    const now = new Date();
-
-    const formatted = now.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
+    features.forEach(f => {
+      fSet.add(f.properties.Facility);
+      cSet.add(f.properties.Condition);
     });
 
-    el.innerText = "Last updated: " + formatted;
-}
+    fSet.forEach(v => facilityFilter.add(new Option(v, v)));
+    cSet.forEach(v => conditionFilter.add(new Option(v, v)));
 
-updateLastUpdated();
+    facilityFilter.onchange = () => {
+      FilterManager.facility = facilityFilter.value.toLowerCase();
+      App.update();
+    };
+
+    conditionFilter.onchange = () => {
+      FilterManager.condition = conditionFilter.value.toLowerCase();
+      App.update();
+    };
+  }
+};
+
+// ===============================
+// APP CONTROLLER
+// ===============================
+const App = {
+
+  async init() {
+    MapManager.init();
+
+    await DataManager.load();
+
+    UIManager.initFilters(DataManager.features);
+
+    this.loadBoundary();
+    this.update();
+  },
+
+  update() {
+    const filtered = FilterManager.apply(DataManager.features);
+    Renderer.render(filtered);
+  },
+
+  async loadBoundary() {
+    const res = await fetch(CONFIG.boundaryUrl);
+    const data = await res.json();
+
+    const boundary = L.geoJSON(data, {
+      style: {
+        color: "#2c3e50",
+        weight: 2,
+        opacity: 0.6,
+        fillOpacity: 0
+      }
+    }).addTo(MapManager.map);
+
+    MapManager.fitToBounds(boundary.getBounds());
+  }
+};
+
+// ===============================
+// INIT
+// ===============================
+App.init();
