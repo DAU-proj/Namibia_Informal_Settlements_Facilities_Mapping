@@ -39,29 +39,54 @@ fetch('data/namibia_dashboard.geojson')
 
 // LOAD BOUNDARY + LOCK
 fetch('data/settlements.geojson')
-.then(res => {
-  if (!res.ok) throw new Error("Boundary not found");
-  return res.json();
-})
+.then(res => res.json())
 .then(data => {
 
   let boundary = L.geoJSON(data, {
-style: {
-  color: "#7f8c8d",
-  weight: 2,
-  opacity: 0.6,
-  fillOpacity: 0
-}
-  })
-   .addTo(map);
+    style: {
+      color: "#2c3e50",
+      weight: 3,
+      opacity: 0.9,
+      fillOpacity: 0
+    }
+  }).addTo(map);
 
-  map.fitBounds(boundary.getBounds());
-  map.setMaxBounds(boundary.getBounds());
+  let bounds = boundary.getBounds();
+
+  // WORLD RECTANGLE
+  let outer = [
+    [-90, -180],
+    [-90, 180],
+    [90, 180],
+    [90, -180]
+  ];
+
+  // EXTRACT ALL POLYGONS
+  let holes = [];
+
+  data.features.forEach(f => {
+    if (f.geometry.type === "Polygon") {
+      holes.push(f.geometry.coordinates[0]);
+    }
+    if (f.geometry.type === "MultiPolygon") {
+      f.geometry.coordinates.forEach(p => {
+        holes.push(p[0]);
+      });
+    }
+  });
+
+  // CREATE MASK
+  let mask = L.polygon([outer, ...holes], {
+    fillColor: "#000",
+    fillOpacity: 0.5,
+    stroke: false,
+    interactive: false
+  }).addTo(map);
+
+  map.fitBounds(bounds);
+  map.setMaxBounds(bounds);
   map.options.maxBoundsViscosity = 1.0;
 
-})
-.catch(err => {
-  console.error("Boundary load failed:", err);
 });
 
 // FILTERS
