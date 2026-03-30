@@ -308,3 +308,11 @@ body {
     text-align: center;
   }
 }
+/* Ensure map container gets full height */
+.map-section {
+  height: calc(100vh - 95px); /* matches your .page */
+}
+#map {
+  height: 100%;
+  width: 100%;
+}
