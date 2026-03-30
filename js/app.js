@@ -54,7 +54,7 @@ const MapManager = {
 };
 
 // ===============================
-// DATA MANAGER (with error handling)
+// DATA MANAGER
 // ===============================
 const DataManager = {
   features: [],
@@ -120,7 +120,34 @@ const StyleManager = {
 };
 
 // ===============================
-// FILTER MANAGER (now with town)
+// RENDERER (MUST BE DEFINED BEFORE APP)
+// ===============================
+const Renderer = {
+  render(features) {
+    MapManager.cluster.clearLayers();
+    features.forEach(f => {
+      const marker = StyleManager.createMarker(f);
+      marker.bindPopup(this.createPopup(f.properties));
+      MapManager.cluster.addLayer(marker);
+    });
+  },
+
+  createPopup(p) {
+    const imgHtml = p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" width="100%">` : "";
+    return `
+      <div class="popup">
+        ${imgHtml}
+        <h4>${p.Facility || "Unknown"}</h4>
+        <p><b>Town:</b> ${p.Town || "—"}</p>
+        <p><b>Condition:</b> ${p.Condition || "—"}</p>
+        <p><b>Functional?</b> ${p["Is the facility functional?"] || "Unknown"}</p>
+      </div>
+    `;
+  }
+};
+
+// ===============================
+// FILTER MANAGER (with town)
 // ===============================
 const FilterManager = {
   town: "",
@@ -141,7 +168,7 @@ const FilterManager = {
 };
 
 // ===============================
-// UI MANAGER (populates all three dropdowns)
+// UI MANAGER (populates dropdowns)
 // ===============================
 const UIManager = {
   initFilters(features) {
@@ -154,7 +181,6 @@ const UIManager = {
       return;
     }
 
-    // Collect unique values
     const towns = new Set();
     const facilities = new Set();
     const conditions = new Set();
@@ -165,7 +191,6 @@ const UIManager = {
       if (f.properties.Condition) conditions.add(f.properties.Condition);
     });
 
-    // Populate Town dropdown (sorted)
     [...towns].sort().forEach(t => {
       const opt = document.createElement("option");
       opt.value = t;
@@ -173,7 +198,6 @@ const UIManager = {
       townSelect.appendChild(opt);
     });
 
-    // Populate Facility dropdown
     [...facilities].sort().forEach(f => {
       const opt = document.createElement("option");
       opt.value = f;
@@ -181,7 +205,6 @@ const UIManager = {
       facilitySelect.appendChild(opt);
     });
 
-    // Populate Condition dropdown
     [...conditions].sort().forEach(c => {
       const opt = document.createElement("option");
       opt.value = c;
@@ -189,7 +212,6 @@ const UIManager = {
       conditionSelect.appendChild(opt);
     });
 
-    // Event listeners
     townSelect.addEventListener("change", (e) => {
       FilterManager.town = e.target.value.toLowerCase();
       App.update();
@@ -207,7 +229,6 @@ const UIManager = {
   }
 };
 
-// The rest of your App remains the same (no changes needed)
 // ===============================
 // APP CONTROLLER
 // ===============================
