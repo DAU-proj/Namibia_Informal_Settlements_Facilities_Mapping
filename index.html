@@ -9,22 +9,23 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet MarkerCluster (critical) -->
+  <!-- Leaflet MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Font Awesome (critical for icons) -->
+  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
-  <!-- Your custom CSS -->
+  <!-- Your CSS (correct path) -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <img src="asset/logo.png" alt="Logo" class="brand-logo">
+    <!-- Fixed logo path -->
+    <img src="asset/unhabitat_logo.png" alt="UN-Habitat Logo" class="brand-logo">
     <div>
       <div class="brand-name">Namibia Informal Settlements</div>
       <div class="brand-subtitle">Facilities & Infrastructure Mapping</div>
@@ -36,40 +37,35 @@
   <h1>📍 Facility Condition Dashboard</h1>
 </div>
 
-<div class="sidebar">
-  <!-- TOWN FILTER (first) -->
-  <div class="panel">
-    <label>🏘️ Town / Settlement</label>
-    <select id="townFilter" class="dropdown">
-      <option value="">All Towns</option>
-    </select>
+<div class="page">
+  <!-- Sidebar with filters -->
+  <div class="sidebar">
+    <div class="panel">
+      <label>🏘️ Town / Settlement</label>
+      <select id="townFilter" class="dropdown">
+        <option value="">All Towns</option>
+      </select>
+    </div>
+    <div class="panel">
+      <label>🏥 Facility Type</label>
+      <select id="facilityFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
+    </div>
+    <div class="panel">
+      <label>📊 Condition</label>
+      <select id="conditionFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
+    </div>
+    <div class="panel">
+      <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
+    </div>
   </div>
-
-  <!-- FACILITY TYPE FILTER -->
-  <div class="panel">
-    <label>🏥 Facility Type</label>
-    <select id="facilityFilter" class="dropdown">
-      <option value="">All</option>
-    </select>
-  </div>
-
-  <!-- CONDITION FILTER -->
-  <div class="panel">
-    <label>📊 Condition</label>
-    <select id="conditionFilter" class="dropdown">
-      <option value="">All</option>
-    </select>
-  </div>
-
-  <div class="panel">
-    <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
-  </div>
-</div>
 
   <!-- Map container -->
   <div class="map-section">
     <div id="map"></div>
-    <!-- Legend -->
     <div class="legend">
       <h4>Facility Condition</h4>
       <div><span class="box good"></span> Good</div>
@@ -91,7 +87,6 @@
   <div class="footer-disclaimer">Preliminary map – for planning purposes only.</div>
 </div>
 
-<!-- Your custom JavaScript -->
 <script src="js/app.js"></script>
 </body>
 </html>
