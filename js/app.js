@@ -45,6 +45,7 @@ const MapManager = {
   },
 
   fitToBounds(bounds) {
+    if (!bounds) return;
     const padded = bounds.pad(0.3);
     this.map.fitBounds(padded);
     this.map.setMaxBounds(padded);
@@ -53,15 +54,22 @@ const MapManager = {
 };
 
 // ===============================
-// DATA MANAGER
+// DATA MANAGER (with error handling)
 // ===============================
 const DataManager = {
   features: [],
 
   async load() {
-    const res = await fetch(CONFIG.dataUrl);
-    const data = await res.json();
-    this.features = data.features;
+    try {
+      const res = await fetch(CONFIG.dataUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.features = data.features;
+      console.log(`Loaded ${this.features.length} facilities`);
+    } catch (err) {
+      console.error("Failed to load facility data:", err);
+      this.features = [];
+    }
   }
 };
 
@@ -70,26 +78,22 @@ const DataManager = {
 // ===============================
 const StyleManager = {
 
-  getColor(condition) {
+  getConditionClass(condition) {
     const c = (condition || "").toLowerCase();
-
-    if (c.includes("good")) return "#27ae60";
-    if (c.includes("average")) return "#f39c12";
-    if (c.includes("poor")) return "#c0392b";
-
-    return "#7f8c8d";
+    if (c.includes("good")) return "good";
+    if (c.includes("average")) return "average";
+    if (c.includes("poor")) return "poor";
+    return "unknown";
   },
 
-  getIcon(facility) {
+  getIconClass(facility) {
     const f = (facility || "").toLowerCase();
-
     if (f.includes("education")) return "fa-school";
     if (f.includes("health")) return "fa-hospital";
     if (f.includes("water")) return "fa-droplet";
     if (f.includes("transport")) return "fa-bus";
     if (f.includes("religious")) return "fa-church";
     if (f.includes("waste")) return "fa-trash";
-
     return "fa-location-dot";
   },
 
@@ -97,16 +101,15 @@ const StyleManager = {
     const p = feature.properties;
     const [lng, lat] = feature.geometry.coordinates;
 
-    const conditionClass = (p.Condition || "")
-      .toLowerCase()
-      .replace(" condition", "");
+    const conditionClass = this.getConditionClass(p.Condition);
+    const iconClass = this.getIconClass(p.Facility);
 
     return L.marker([lat, lng], {
       icon: L.divIcon({
         className: "",
         html: `
           <div class="marker ${conditionClass}">
-            <i class="fa-solid ${this.getIcon(p.Facility)}"></i>
+            <i class="fa-solid ${iconClass}"></i>
           </div>
         `,
         iconSize: [32, 32],
@@ -127,7 +130,6 @@ const FilterManager = {
     return features.filter(f => {
       const fVal = (f.properties.Facility || "").toLowerCase();
       const cVal = (f.properties.Condition || "").toLowerCase();
-
       return (!this.facility || fVal.includes(this.facility)) &&
              (!this.condition || cVal.includes(this.condition));
     });
@@ -138,57 +140,77 @@ const FilterManager = {
 // RENDERER
 // ===============================
 const Renderer = {
-
   render(features) {
     MapManager.cluster.clearLayers();
-
     features.forEach(f => {
       const marker = StyleManager.createMarker(f);
-
       marker.bindPopup(this.createPopup(f.properties));
       MapManager.cluster.addLayer(marker);
     });
   },
 
   createPopup(p) {
+    // Optional image if field exists
+    const imgHtml = p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" width="100%">` : "";
     return `
       <div class="popup">
-        ${p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}">` : ""}
-        <h4>${p.Facility}</h4>
-        <p><b>Town:</b> ${p.Town}</p>
-        <p><b>Condition:</b> ${p.Condition}</p>
-        <p><b>Status:</b> ${p["Is the facility functional?"]}</p>
+        ${imgHtml}
+        <h4>${p.Facility || "Unknown"}</h4>
+        <p><b>Town:</b> ${p.Town || "—"}</p>
+        <p><b>Condition:</b> ${p.Condition || "—"}</p>
+        <p><b>Functional?</b> ${p["Is the facility functional?"] || "Unknown"}</p>
       </div>
     `;
   }
 };
 
 // ===============================
-// UI MANAGER
+// UI MANAGER (populates dropdowns)
 // ===============================
 const UIManager = {
-
   initFilters(features) {
-    const fSet = new Set();
-    const cSet = new Set();
+    const facilitySelect = document.getElementById("facilityFilter");
+    const conditionSelect = document.getElementById("conditionFilter");
+
+    if (!facilitySelect || !conditionSelect) {
+      console.warn("Filter dropdowns not found in DOM");
+      return;
+    }
+
+    const facilities = new Set();
+    const conditions = new Set();
 
     features.forEach(f => {
-      fSet.add(f.properties.Facility);
-      cSet.add(f.properties.Condition);
+      if (f.properties.Facility) facilities.add(f.properties.Facility);
+      if (f.properties.Condition) conditions.add(f.properties.Condition);
     });
 
-    fSet.forEach(v => facilityFilter.add(new Option(v, v)));
-    cSet.forEach(v => conditionFilter.add(new Option(v, v)));
+    // Populate facility dropdown
+    [...facilities].sort().forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      facilitySelect.appendChild(opt);
+    });
 
-    facilityFilter.onchange = () => {
-      FilterManager.facility = facilityFilter.value.toLowerCase();
-      App.update();
-    };
+    // Populate condition dropdown
+    [...conditions].sort().forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      conditionSelect.appendChild(opt);
+    });
 
-    conditionFilter.onchange = () => {
-      FilterManager.condition = conditionFilter.value.toLowerCase();
+    // Event listeners
+    facilitySelect.addEventListener("change", (e) => {
+      FilterManager.facility = e.target.value.toLowerCase();
       App.update();
-    };
+    });
+
+    conditionSelect.addEventListener("change", (e) => {
+      FilterManager.condition = e.target.value.toLowerCase();
+      App.update();
+    });
   }
 };
 
@@ -196,15 +218,15 @@ const UIManager = {
 // APP CONTROLLER
 // ===============================
 const App = {
-
   async init() {
     MapManager.init();
-
     await DataManager.load();
-
+    if (DataManager.features.length === 0) {
+      console.error("No facility data loaded – map will be empty.");
+      return;
+    }
     UIManager.initFilters(DataManager.features);
-
-    this.loadBoundary();
+    await this.loadBoundary();
     this.update();
   },
 
@@ -214,23 +236,24 @@ const App = {
   },
 
   async loadBoundary() {
-    const res = await fetch(CONFIG.boundaryUrl);
-    const data = await res.json();
-
-    const boundary = L.geoJSON(data, {
-      style: {
-        color: "#2c3e50",
-        weight: 2,
-        opacity: 0.6,
-        fillOpacity: 0
-      }
-    }).addTo(MapManager.map);
-
-    MapManager.fitToBounds(boundary.getBounds());
+    try {
+      const res = await fetch(CONFIG.boundaryUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const boundary = L.geoJSON(data, {
+        style: {
+          color: "#2c3e50",
+          weight: 2,
+          opacity: 0.6,
+          fillOpacity: 0
+        }
+      }).addTo(MapManager.map);
+      MapManager.fitToBounds(boundary.getBounds());
+    } catch (err) {
+      console.warn("Could not load boundary layer:", err);
+    }
   }
 };
 
-// ===============================
-// INIT
-// ===============================
+// Start the app
 App.init();
