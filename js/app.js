@@ -1,268 +1,259 @@
-var map = L.map('map', {
-    maxBounds: [[-30, 10], [-16, 30]]
-}).setView([-22, 17], 6);
+// ===============================
+// CONFIG
+// ===============================
+const CONFIG = {
+  center: [-22, 17],
+  zoom: 6,
+  dataUrl: 'data/namibia_dashboard.geojson',
+  boundaryUrl: 'data/settlements.geojson'
+};
 
-var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+// ===============================
+// MAP MANAGER
+// ===============================
+const MapManager = {
+  map: null,
+  cluster: null,
+  baseLayers: {},
 
-var esri = L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    {
-        attribution: 'Tiles &copy; Esri'
-    }
-);
+  init() {
+    this.map = L.map('map').setView(CONFIG.center, CONFIG.zoom);
 
-L.control.layers(
-    {
-        "OpenStreetMap": osm,
-        "Satellite": esri
-    },
-    {},
-    { collapsed: false }
-).addTo(map);
+    const light = L.tileLayer(
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    ).addTo(this.map);
 
-var cluster = L.markerClusterGroup({
-    showCoverageOnHover: false,
-    spiderfyOnMaxZoom: true,
-    zoomToBoundsOnClick: true,
-    iconCreateFunction: function (clusterGroup) {
-        var count = clusterGroup.getChildCount();
-        var size = "small";
+    const sat = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    );
 
-        if (count > 50) {
-            size = "large";
-        } else if (count > 20) {
-            size = "medium";
-        }
+    this.baseLayers = { "Light": light, "Satellite": sat };
+    L.control.layers(this.baseLayers).addTo(this.map);
 
+    this.cluster = L.markerClusterGroup({
+      iconCreateFunction: cluster => {
+        const count = cluster.getChildCount();
         return L.divIcon({
-            html: "<div><span>" + count + "</span></div>",
-            className: "marker-cluster marker-cluster-" + size,
-            iconSize: L.point(40, 40)
+          html: `<div class="cluster">${count}</div>`,
+          className: "cluster-wrapper",
+          iconSize: L.point(40, 40)
         });
+      }
+    });
+
+    this.map.addLayer(this.cluster);
+  },
+
+  fitToBounds(bounds) {
+    if (!bounds) return;
+    const padded = bounds.pad(0.3);
+    this.map.fitBounds(padded);
+    this.map.setMaxBounds(padded);
+    this.map.options.maxBoundsViscosity = 0.6;
+  }
+};
+
+// ===============================
+// DATA MANAGER (with error handling)
+// ===============================
+const DataManager = {
+  features: [],
+
+  async load() {
+    try {
+      const res = await fetch(CONFIG.dataUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      this.features = data.features;
+      console.log(`Loaded ${this.features.length} facilities`);
+    } catch (err) {
+      console.error("Failed to load facility data:", err);
+      this.features = [];
     }
-});
+  }
+};
 
-var townLayers = {};
-var allTowns = [];
+// ===============================
+// STYLE MANAGER
+// ===============================
+const StyleManager = {
 
-function normalizeTownName(value) {
-    return (value || "").trim();
-}
+  getConditionClass(condition) {
+    const c = (condition || "").toLowerCase();
+    if (c.includes("good")) return "good";
+    if (c.includes("average")) return "average";
+    if (c.includes("poor")) return "poor";
+    return "unknown";
+  },
 
-function formatCondition(value) {
-    var cond = (value || "Unknown").trim();
-    if (!cond) return "Unknown";
-    return cond.charAt(0).toUpperCase() + cond.slice(1).toLowerCase();
-}
+  getIconClass(facility) {
+    const f = (facility || "").toLowerCase();
+    if (f.includes("education")) return "fa-school";
+    if (f.includes("health")) return "fa-hospital";
+    if (f.includes("water")) return "fa-droplet";
+    if (f.includes("transport")) return "fa-bus";
+    if (f.includes("religious")) return "fa-church";
+    if (f.includes("waste")) return "fa-trash";
+    return "fa-location-dot";
+  },
 
-function getConditionColor(condition) {
-    var c = (condition || "").toLowerCase();
-    if (c.includes("good")) return "#2ecc71";
-    if (c.includes("fair")) return "#f1c40f";
-    if (c.includes("poor")) return "#e74c3c";
-    return "#95a5a6";
-}
+  createMarker(feature) {
+    const p = feature.properties;
+    const [lng, lat] = feature.geometry.coordinates;
 
-fetch('data/namibia_dashboard.geojson')
-    .then(function (response) {
-        if (!response.ok) {
-            throw new Error("Could not load data/namibia_dashboard.geojson");
-        }
-        return response.json();
-    })
-    .then(function (data) {
-        var facilitiesLayer = L.geoJSON(data, {
-            pointToLayer: function (feature, latlng) {
-                var town = normalizeTownName(feature.properties.Town);
+    const conditionClass = this.getConditionClass(p.Condition);
+    const iconClass = this.getIconClass(p.Facility);
 
-                if (town && !townLayers[town]) {
-                    townLayers[town] = [];
-                    allTowns.push(town);
-                }
-
-                return L.circleMarker(latlng, {
-                    radius: 6,
-                    fillColor: "#019EDF",
-                    color: "#ffffff",
-                    weight: 1,
-                    fillOpacity: 0.95
-                });
-            },
-
-            onEachFeature: function (feature, layer) {
-                var p = feature.properties || {};
-                var town = normalizeTownName(p.Town);
-                var img = p.github_image_url_cdn || "";
-
-                layer.bindPopup(
-                    '<div class="popup-card">' +
-                        (img ? '<img src="' + img + '" alt="Facility image">' : '') +
-                        '<div class="popup-row"><span class="popup-label">Town:</span> ' + (p.Town || '') + '</div>' +
-                        '<div class="popup-row"><span class="popup-label">Facility:</span> ' + (p.Facility || '') + '</div>' +
-                        '<div class="popup-row"><span class="popup-label">Status:</span> ' + (p["Is the facility functional?"] || '') + '</div>' +
-                        '<div class="popup-row"><span class="popup-label">Condition:</span> ' + (p.Condition || '') + '</div>' +
-                    '</div>'
-                );
-
-                if (!townLayers[town]) {
-                    townLayers[town] = [];
-                    if (town) allTowns.push(town);
-                }
-
-                townLayers[town].push(layer);
-            }
-        });
-
-        cluster.addLayer(facilitiesLayer);
-        map.addLayer(cluster);
-
-        buildTownList(allTowns);
-    })
-    .catch(function (error) {
-        console.error("Facility data loading error:", error);
-        document.getElementById("kpi").innerHTML =
-            '<div class="kpi-box">Could not load facility data.</div>';
+    return L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: "",
+        html: `
+          <div class="marker ${conditionClass}">
+            <i class="fa-solid ${iconClass}"></i>
+          </div>
+        `,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      })
     });
+  }
+};
 
-function buildTownList(towns) {
-    var container = document.getElementById("townList");
-    container.innerHTML = "";
+// ===============================
+// FILTER MANAGER
+// ===============================
+const FilterManager = {
+  facility: "",
+  condition: "",
 
-    var uniqueTowns = Array.from(new Set(towns.filter(Boolean))).sort();
-
-    uniqueTowns.forEach(function (town) {
-        var div = document.createElement("div");
-        div.className = "town-item";
-        div.textContent = town;
-
-        div.onclick = function () {
-            document.querySelectorAll('.town-item').forEach(function (el) {
-                el.classList.remove('active-town');
-            });
-            div.classList.add('active-town');
-
-            var layers = townLayers[town] || [];
-            if (!layers.length) {
-                document.getElementById("kpi").innerHTML =
-                    '<div class="kpi-box">No data available for this town.</div>';
-                return;
-            }
-
-            var group = L.featureGroup(layers);
-            map.fitBounds(group.getBounds(), { padding: [30, 30] });
-
-            updateKPI(town);
-        };
-
-        container.appendChild(div);
+  apply(features) {
+    return features.filter(f => {
+      const fVal = (f.properties.Facility || "").toLowerCase();
+      const cVal = (f.properties.Condition || "").toLowerCase();
+      return (!this.facility || fVal.includes(this.facility)) &&
+             (!this.condition || cVal.includes(this.condition));
     });
-}
+  }
+};
 
-function updateKPI(town) {
-    var layers = townLayers[town] || [];
-    var kpi = document.getElementById("kpi");
+// ===============================
+// RENDERER
+// ===============================
+const Renderer = {
+  render(features) {
+    MapManager.cluster.clearLayers();
+    features.forEach(f => {
+      const marker = StyleManager.createMarker(f);
+      marker.bindPopup(this.createPopup(f.properties));
+      MapManager.cluster.addLayer(marker);
+    });
+  },
 
-    if (!layers.length) {
-        kpi.innerHTML = '<div class="kpi-box">No data available for this town.</div>';
-        return;
+  createPopup(p) {
+    // Optional image if field exists
+    const imgHtml = p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" width="100%">` : "";
+    return `
+      <div class="popup">
+        ${imgHtml}
+        <h4>${p.Facility || "Unknown"}</h4>
+        <p><b>Town:</b> ${p.Town || "—"}</p>
+        <p><b>Condition:</b> ${p.Condition || "—"}</p>
+        <p><b>Functional?</b> ${p["Is the facility functional?"] || "Unknown"}</p>
+      </div>
+    `;
+  }
+};
+
+// ===============================
+// UI MANAGER (populates dropdowns)
+// ===============================
+const UIManager = {
+  initFilters(features) {
+    const facilitySelect = document.getElementById("facilityFilter");
+    const conditionSelect = document.getElementById("conditionFilter");
+
+    if (!facilitySelect || !conditionSelect) {
+      console.warn("Filter dropdowns not found in DOM");
+      return;
     }
 
-    var total = layers.length;
-    var functional = layers.filter(function (layer) {
-        return ((layer.feature.properties["Is the facility functional?"] || "").toLowerCase() === "yes");
-    }).length;
+    const facilities = new Set();
+    const conditions = new Set();
 
-    var conditionCounts = {};
-    layers.forEach(function (layer) {
-        var condition = formatCondition(layer.feature.properties.Condition);
-        conditionCounts[condition] = (conditionCounts[condition] || 0) + 1;
+    features.forEach(f => {
+      if (f.properties.Facility) facilities.add(f.properties.Facility);
+      if (f.properties.Condition) conditions.add(f.properties.Condition);
     });
 
-    var functionalPercent = total > 0 ? ((functional / total) * 100).toFixed(1) : "0.0";
-
-    var html = '';
-    html += '<div class="kpi-box kpi-main">';
-    html += '<span class="kpi-title">Total Facilities</span>';
-    html += '<span class="kpi-value">' + total + '</span>';
-    html += '</div>';
-
-    html += '<div class="kpi-box kpi-main">';
-    html += '<span class="kpi-title">Functional</span>';
-    html += '<span class="kpi-value">' + functional + '</span>';
-    html += '<span class="kpi-sub">' + functionalPercent + '% of selected town</span>';
-    html += '</div>';
-
-    Object.keys(conditionCounts).sort().forEach(function (condition) {
-        var count = conditionCounts[condition];
-        var percent = total > 0 ? ((count / total) * 100).toFixed(1) : "0.0";
-        var color = getConditionColor(condition);
-
-        html += '<div class="kpi-box" style="border-left:5px solid ' + color + ';">';
-        html += '<span class="kpi-title">' + condition + '</span>';
-        html += '<span class="kpi-value">' + count + '</span>';
-        html += '<span class="kpi-sub">' + percent + '% of selected town</span>';
-        html += '</div>';
+    // Populate facility dropdown
+    [...facilities].sort().forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      facilitySelect.appendChild(opt);
     });
 
-    kpi.innerHTML = html;
-}
-
-document.getElementById("searchBox").addEventListener("keyup", function () {
-    var value = this.value.toLowerCase();
-    var filtered = allTowns.filter(function (town) {
-        return town.toLowerCase().includes(value);
+    // Populate condition dropdown
+    [...conditions].sort().forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      conditionSelect.appendChild(opt);
     });
-    buildTownList(filtered);
-});
 
-fetch('data/settlements.geojson')
-    .then(function (response) {
-        if (!response.ok) {
-            throw new Error("No settlement layer found");
+    // Event listeners
+    facilitySelect.addEventListener("change", (e) => {
+      FilterManager.facility = e.target.value.toLowerCase();
+      App.update();
+    });
+
+    conditionSelect.addEventListener("change", (e) => {
+      FilterManager.condition = e.target.value.toLowerCase();
+      App.update();
+    });
+  }
+};
+
+// ===============================
+// APP CONTROLLER
+// ===============================
+const App = {
+  async init() {
+    MapManager.init();
+    await DataManager.load();
+    if (DataManager.features.length === 0) {
+      console.error("No facility data loaded – map will be empty.");
+      return;
+    }
+    UIManager.initFilters(DataManager.features);
+    await this.loadBoundary();
+    this.update();
+  },
+
+  update() {
+    const filtered = FilterManager.apply(DataManager.features);
+    Renderer.render(filtered);
+  },
+
+  async loadBoundary() {
+    try {
+      const res = await fetch(CONFIG.boundaryUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const boundary = L.geoJSON(data, {
+        style: {
+          color: "#2c3e50",
+          weight: 2,
+          opacity: 0.6,
+          fillOpacity: 0
         }
-        return response.json();
-    })
-    .then(function (data) {
-        var settlements = L.geoJSON(data, {
-            style: function () {
-                return {
-                    color: "#e74c3c",
-                    weight: 1.2,
-                    fillColor: "#e74c3c",
-                    fillOpacity: 0.16
-                };
-            },
-            onEachFeature: function (feature, layer) {
-                layer.on("click", function () {
-                    map.fitBounds(layer.getBounds(), { padding: [20, 20] });
-                });
-            }
-        });
+      }).addTo(MapManager.map);
+      MapManager.fitToBounds(boundary.getBounds());
+    } catch (err) {
+      console.warn("Could not load boundary layer:", err);
+    }
+  }
+};
 
-        settlements.addTo(map);
-    })
-    .catch(function () {
-        console.warn("Settlements layer not found.");
-    });
-
-// =====================
-// LAST UPDATED (AUTO)
-// =====================
-function updateLastUpdated() {
-    const el = document.getElementById("lastUpdated");
-    if (!el) return;
-
-    const now = new Date();
-
-    const formatted = now.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-    });
-
-    el.innerText = "Last updated: " + formatted;
-}
-
-updateLastUpdated();
+// Start the app
+App.init();

@@ -1,115 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>UN-HABITAT | Namibia Informal Settlements Facilities Mapping</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Namibia Informal Settlements & Facilities Mapping</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css">
+  <!-- Leaflet core -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <!-- Leaflet MarkerCluster (critical) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <link rel="stylesheet" href="css/styles.css">
+  <!-- Font Awesome (critical for icons) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+  <!-- Your custom CSS -->
+  <link rel="stylesheet" href="css/style.css" />
 </head>
-
-<footer class="footer">
-  <div class="footer-inner">
-
-    <!-- LEFT -->
-    <div class="footer-left">
-      <strong>UN-HABITAT</strong><br>
-     Data & Analytics Unit<br>
-          </div>
-
-    <!-- CENTER -->
-    <div class="footer-center">
-      <span>Namibia Informal Settlements Facilities Mapping</span><br>
-      <small id="lastUpdated">Last updated: --</small>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="footer-right">
-      <span>Data Sources:</span><br>
-      <small>Field Surveys | GIS Analysis | UN-Habitat</small><br>
-      <a href="https://unhabitat.org" target="_blank">UN-Habitat</a> |
-      <a href="https://github.com/dau-proj/Namibia_Informal_Settlements_Facilities_Mapping" target="_blank">Project Repository</a>
-    </div>
-
-  </div>
-
-  <!-- DISCLAIMER -->
-  <div class="footer-disclaimer">
-    Disclaimer: The boundaries, names, and designations used on this map do not imply official endorsement or acceptance by the United Nations. Data is provided for planning and analytical purposes only.
-  </div>
-</footer>  
-  
 <body>
 
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <img src="./asset/unhabitat_logo.png" alt="UN-Habitat logo" class="brand-logo">
-        <div class="brand-text">
-          <div class="brand-name">UN-HABITAT</div>
-          <div class="brand-subtitle">Data and Analytics Dashboard</div>
-        </div>
-      </div>
-
-      <nav class="topnav">
-        <a href="#" class="topnav-link active">Dashboard</a>
-      </nav>
+<div class="topbar">
+  <div class="brand">
+    <img src="asset/logo.png" alt="Logo" class="brand-logo">
+    <div>
+      <div class="brand-name">Namibia Informal Settlements</div>
+      <div class="brand-subtitle">Facilities & Infrastructure Mapping</div>
     </div>
-  </header>
+  </div>
+</div>
 
-  <section class="hero">
-    <div class="hero-inner">
-      <h1>Namibia Informal Settlements Facilities Mapping</h1>
-      <p>An overview of facilities, conditions, and settlement-level spatial analytics.</p>
+<div class="hero">
+  <h1>📍 Facility Condition Dashboard</h1>
+</div>
+
+<div class="page">
+  <!-- Sidebar with filters -->
+  <div class="sidebar">
+    <div class="panel">
+      <label>🏥 Facility Type</label>
+      <select id="facilityFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
     </div>
-  </section>
+    <div class="panel">
+      <label>📊 Condition</label>
+      <select id="conditionFilter" class="dropdown">
+        <option value="">All</option>
+      </select>
+    </div>
+    <div class="panel">
+      <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
+    </div>
+  </div>
 
-  <main class="page">
-    <aside class="sidebar">
-      <div class="panel">
-        <h3>Search</h3>
-        <input type="text" id="searchBox" placeholder="Search town...">
-      </div>
+  <!-- Map container -->
+  <div class="map-section">
+    <div id="map"></div>
+    <!-- Legend -->
+    <div class="legend">
+      <h4>Facility Condition</h4>
+      <div><span class="box good"></span> Good</div>
+      <div><span class="box average"></span> Average</div>
+      <div><span class="box poor"></span> Poor</div>
+      <div><span class="box unknown"></span> Unknown / Other</div>
+    </div>
+  </div>
+</div>
 
-      <div class="panel">
-        <h3>Towns</h3>
-        <div id="townList" class="town-list"></div>
-      </div>
+<div class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">© 2025 DAU-Proj</div>
+    <div class="footer-center">Data: Field survey & OSM</div>
+    <div class="footer-right">
+      <a href="#">About</a> | <a href="#">GitHub</a>
+    </div>
+  </div>
+  <div class="footer-disclaimer">Preliminary map – for planning purposes only.</div>
+</div>
 
-      <div class="panel">
-        <h3>KPI Analytics</h3>
-        <div id="kpi" class="kpi-wrap">Click a town to view statistics.</div>
-      </div>
-
-      <div class="panel">
-        <h3>Legend</h3>
-        <div class="legend-item">
-          <span class="legend-dot facility-dot"></span>
-          <span>Facilities</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-swatch settlement-swatch"></span>
-          <span>Settlements</span>
-        </div>
-        <div class="legend-item">
-          <span class="legend-cluster">12</span>
-          <span>Clustered facilities</span>
-        </div>
-      </div>
-    </aside>
-
-    <section class="map-section">
-      <div id="map"></div>
-    </section>
-  </main>
-
-  <script src="js/app.js"></script>
+<!-- Your custom JavaScript -->
+<script src="js/app.js"></script>
 </body>
 </html>
