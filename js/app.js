@@ -120,88 +120,81 @@ const StyleManager = {
 };
 
 // ===============================
-// FILTER MANAGER
+// FILTER MANAGER (now with town)
 // ===============================
 const FilterManager = {
+  town: "",
   facility: "",
   condition: "",
 
   apply(features) {
     return features.filter(f => {
+      const townVal = (f.properties.Town || "").toLowerCase();
       const fVal = (f.properties.Facility || "").toLowerCase();
       const cVal = (f.properties.Condition || "").toLowerCase();
-      return (!this.facility || fVal.includes(this.facility)) &&
+
+      return (!this.town || townVal.includes(this.town)) &&
+             (!this.facility || fVal.includes(this.facility)) &&
              (!this.condition || cVal.includes(this.condition));
     });
   }
 };
 
 // ===============================
-// RENDERER
-// ===============================
-const Renderer = {
-  render(features) {
-    MapManager.cluster.clearLayers();
-    features.forEach(f => {
-      const marker = StyleManager.createMarker(f);
-      marker.bindPopup(this.createPopup(f.properties));
-      MapManager.cluster.addLayer(marker);
-    });
-  },
-
-  createPopup(p) {
-    // Optional image if field exists
-    const imgHtml = p.github_image_url_cdn ? `<img src="${p.github_image_url_cdn}" width="100%">` : "";
-    return `
-      <div class="popup">
-        ${imgHtml}
-        <h4>${p.Facility || "Unknown"}</h4>
-        <p><b>Town:</b> ${p.Town || "—"}</p>
-        <p><b>Condition:</b> ${p.Condition || "—"}</p>
-        <p><b>Functional?</b> ${p["Is the facility functional?"] || "Unknown"}</p>
-      </div>
-    `;
-  }
-};
-
-// ===============================
-// UI MANAGER (populates dropdowns)
+// UI MANAGER (populates all three dropdowns)
 // ===============================
 const UIManager = {
   initFilters(features) {
+    const townSelect = document.getElementById("townFilter");
     const facilitySelect = document.getElementById("facilityFilter");
     const conditionSelect = document.getElementById("conditionFilter");
 
-    if (!facilitySelect || !conditionSelect) {
-      console.warn("Filter dropdowns not found in DOM");
+    if (!townSelect || !facilitySelect || !conditionSelect) {
+      console.warn("One or more filter dropdowns not found in DOM");
       return;
     }
 
+    // Collect unique values
+    const towns = new Set();
     const facilities = new Set();
     const conditions = new Set();
 
     features.forEach(f => {
+      if (f.properties.Town) towns.add(f.properties.Town);
       if (f.properties.Facility) facilities.add(f.properties.Facility);
       if (f.properties.Condition) conditions.add(f.properties.Condition);
     });
 
-    // Populate facility dropdown
-    [...facilities].sort().forEach(v => {
+    // Populate Town dropdown (sorted)
+    [...towns].sort().forEach(t => {
       const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
+      opt.value = t;
+      opt.textContent = t;
+      townSelect.appendChild(opt);
+    });
+
+    // Populate Facility dropdown
+    [...facilities].sort().forEach(f => {
+      const opt = document.createElement("option");
+      opt.value = f;
+      opt.textContent = f;
       facilitySelect.appendChild(opt);
     });
 
-    // Populate condition dropdown
-    [...conditions].sort().forEach(v => {
+    // Populate Condition dropdown
+    [...conditions].sort().forEach(c => {
       const opt = document.createElement("option");
-      opt.value = v;
-      opt.textContent = v;
+      opt.value = c;
+      opt.textContent = c;
       conditionSelect.appendChild(opt);
     });
 
     // Event listeners
+    townSelect.addEventListener("change", (e) => {
+      FilterManager.town = e.target.value.toLowerCase();
+      App.update();
+    });
+
     facilitySelect.addEventListener("change", (e) => {
       FilterManager.facility = e.target.value.toLowerCase();
       App.update();
@@ -214,6 +207,7 @@ const UIManager = {
   }
 };
 
+// The rest of your App remains the same (no changes needed)
 // ===============================
 // APP CONTROLLER
 // ===============================
