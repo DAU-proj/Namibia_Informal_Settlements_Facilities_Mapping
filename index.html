@@ -36,25 +36,35 @@
   <h1>📍 Facility Condition Dashboard</h1>
 </div>
 
-<div class="page">
-  <!-- Sidebar with filters -->
-  <div class="sidebar">
-    <div class="panel">
-      <label>🏥 Facility Type</label>
-      <select id="facilityFilter" class="dropdown">
-        <option value="">All</option>
-      </select>
-    </div>
-    <div class="panel">
-      <label>📊 Condition</label>
-      <select id="conditionFilter" class="dropdown">
-        <option value="">All</option>
-      </select>
-    </div>
-    <div class="panel">
-      <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
-    </div>
+<div class="sidebar">
+  <!-- TOWN FILTER (first) -->
+  <div class="panel">
+    <label>🏘️ Town / Settlement</label>
+    <select id="townFilter" class="dropdown">
+      <option value="">All Towns</option>
+    </select>
   </div>
+
+  <!-- FACILITY TYPE FILTER -->
+  <div class="panel">
+    <label>🏥 Facility Type</label>
+    <select id="facilityFilter" class="dropdown">
+      <option value="">All</option>
+    </select>
+  </div>
+
+  <!-- CONDITION FILTER -->
+  <div class="panel">
+    <label>📊 Condition</label>
+    <select id="conditionFilter" class="dropdown">
+      <option value="">All</option>
+    </select>
+  </div>
+
+  <div class="panel">
+    <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
+  </div>
+</div>
 
   <!-- Map container -->
   <div class="map-section">
