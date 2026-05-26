@@ -5,26 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Namibia Informal Settlements & Facilities Mapping</title>
 
-  <!-- Leaflet core -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-
-  <!-- Your CSS (correct path) -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
 
 <div class="topbar">
   <div class="brand">
-    <!-- Fixed logo path -->
     <img src="asset/unhabitat_logo.png" alt="UN-Habitat Logo" class="brand-logo">
     <div>
       <div class="brand-name">Namibia Informal Settlements</div>
@@ -34,36 +28,94 @@
 </div>
 
 <div class="hero">
-  <h1> Facility Condition Dashboard</h1>
+  <h1>Facility Condition Dashboard</h1>
 </div>
 
 <div class="page">
-  <!-- Sidebar with filters -->
+
+  <!-- ===== SIDEBAR ===== -->
   <div class="sidebar">
+
+    <!-- Stats panel -->
+    <div class="panel stats-panel">
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-num" id="statTotal">—</div>
+          <div class="stat-lbl">Shown</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num stat-good" id="statGood">—</div>
+          <div class="stat-lbl">Good</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num stat-avg" id="statAvg">—</div>
+          <div class="stat-lbl">Average</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num stat-poor" id="statPoor">—</div>
+          <div class="stat-lbl">Poor</div>
+        </div>
+      </div>
+      <div class="stats-row stats-row2">
+        <div class="stat-box">
+          <div class="stat-num stat-func" id="statFunc">—</div>
+          <div class="stat-lbl">Functional</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num stat-nonfunc" id="statNonFunc">—</div>
+          <div class="stat-lbl">Non-functional</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-num stat-unknown" id="statUnknownFunc">—</div>
+          <div class="stat-lbl">Status unknown</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter 1: Town / Local Authority -->
     <div class="panel">
-      <label>🏘️ Town / Settlement</label>
+      <label>🏛️ Town / Local Authority</label>
       <select id="townFilter" class="dropdown">
         <option value="">All Towns</option>
       </select>
     </div>
+
+    <!-- Filter 2: Informal Settlement (cascades from town) -->
+    <div class="panel">
+      <label>🏘️ Informal Settlement</label>
+      <select id="settlementFilter" class="dropdown" disabled>
+        <option value="">All Settlements</option>
+      </select>
+    </div>
+
+    <!-- Filter 3: Facility Type -->
     <div class="panel">
       <label>🏥 Facility Type</label>
       <select id="facilityFilter" class="dropdown">
-        <option value="">All</option>
+        <option value="">All Types</option>
       </select>
     </div>
+
+    <!-- Filter 4: Functionality -->
     <div class="panel">
-      <label>📊 Condition</label>
-      <select id="conditionFilter" class="dropdown">
+      <label>⚡ Functionality</label>
+      <select id="functionalFilter" class="dropdown">
         <option value="">All</option>
+        <option value="yes">Functional</option>
+        <option value="no">Non-functional</option>
+        <option value="unknown">Unknown</option>
       </select>
     </div>
-    <div class="panel">
+
+    <!-- Clear filters -->
+    <button id="clearFilters" class="clear-btn">✕ Clear all filters</button>
+
+    <div class="panel hint-panel">
       <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
     </div>
   </div>
 
-  <!-- Map container -->
+  <!-- ===== MAP ===== -->
   <div class="map-section">
     <div id="map"></div>
     <div class="legend">
@@ -72,16 +124,22 @@
       <div><span class="box average"></span> Average</div>
       <div><span class="box poor"></span> Poor</div>
       <div><span class="box unknown"></span> Unknown / Other</div>
+
       <hr class="legend-divider">
-      <h4>🏘️ Navigate</h4>
-      <select id="townNav" class="legend-dropdown">
-        <option value="">— Select town —</option>
-      </select>
-      <select id="settlementNav" class="legend-dropdown" disabled>
-        <option value="">— Select settlement —</option>
-      </select>
+      <h4>Facility Type</h4>
+      <div><span class="legend-icon"><i class="fa-solid fa-droplet"></i></span> Water point</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-toilet"></i></span> Sanitation</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-trash"></i></span> Solid waste</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-school"></i></span> Education</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-hospital"></i></span> Health</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-church"></i></span> Religious</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-bus"></i></span> Transport</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-lightbulb"></i></span> Lighting</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-store"></i></span> Market</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-location-dot"></i></span> Other</div>
     </div>
   </div>
+
 </div>
 
 <div class="footer">
