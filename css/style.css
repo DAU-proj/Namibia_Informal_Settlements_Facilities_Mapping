@@ -184,6 +184,12 @@ body {
   cursor: pointer;
 }
 
+.legend-dropdown:disabled {
+  background: #efefef;
+  color: #aaa;
+  cursor: default;
+}
+
 .legend h4 {
   margin: 0 0 6px;
   font-size: 13px;

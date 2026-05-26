@@ -278,8 +278,10 @@ const App = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      // Map settlement name → layer bounds for pan-to
-      MapManager.informalLayer = {};
+      // Index layers by settlement name; also group settlements by town
+      MapManager.informalLayer = {};       // name  → layer
+      const townBounds   = {};             // town  → L.latLngBounds
+      const townSettlements = {};          // town  → [settlement names]
 
       const geoLayer = L.geoJSON(data, {
         style: {
@@ -290,23 +292,58 @@ const App = {
           fillOpacity: 0.12
         },
         onEachFeature(feature, layer) {
-          const name = feature.properties.Settlement || feature.properties.IS_Name || "Unnamed";
+          const name = feature.properties.Settlement || "Unnamed";
+          const town = (feature.properties.Town || "").toUpperCase().trim();
           layer.bindTooltip(name, { sticky: true, opacity: 0.85 });
           MapManager.informalLayer[name] = layer;
+
+          // Accumulate town bounds
+          if (!townBounds[town]) {
+            townBounds[town] = layer.getBounds();
+            townSettlements[town] = [];
+          } else {
+            townBounds[town].extend(layer.getBounds());
+          }
+          townSettlements[town].push(name);
         }
       }).addTo(MapManager.map);
 
-      // Populate the legend dropdown
-      const sel = document.getElementById("settlementNav");
-      if (sel) {
-        [...Object.keys(MapManager.informalLayer)].sort().forEach(name => {
+      // ---- Populate town dropdown ----
+      const townSel       = document.getElementById("townNav");
+      const settlementSel = document.getElementById("settlementNav");
+
+      if (townSel && settlementSel) {
+        Object.keys(townBounds).sort().forEach(town => {
           const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          sel.appendChild(opt);
+          opt.value = town;
+          opt.textContent = town;
+          townSel.appendChild(opt);
         });
 
-        sel.addEventListener("change", (e) => {
+        // Town selected → zoom to town + populate settlement dropdown
+        townSel.addEventListener("change", (e) => {
+          const town = e.target.value;
+
+          // Reset settlement dropdown
+          settlementSel.innerHTML = '<option value="">— Select settlement —</option>';
+          settlementSel.disabled = !town;
+
+          if (!town) return;
+
+          // Zoom to town extent
+          MapManager.map.fitBounds(townBounds[town].pad(0.15));
+
+          // Fill settlement dropdown for this town
+          (townSettlements[town] || []).sort().forEach(name => {
+            const opt = document.createElement("option");
+            opt.value = name;
+            opt.textContent = name;
+            settlementSel.appendChild(opt);
+          });
+        });
+
+        // Settlement selected → zoom to that settlement
+        settlementSel.addEventListener("change", (e) => {
           const chosen = e.target.value;
           if (!chosen) return;
           const layer = MapManager.informalLayer[chosen];
