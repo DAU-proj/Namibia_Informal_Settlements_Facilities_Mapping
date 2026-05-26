@@ -5,7 +5,8 @@ const CONFIG = {
   center: [-22, 17],
   zoom: 6,
   dataUrl: 'data/namibia_dashboard.geojson',
-  boundaryUrl: 'data/settlements.geojson'
+  boundaryUrl: 'data/settlements.geojson',
+  informalUrl: 'data/Informal Settlement.geojson'
 };
 
 // ===============================
@@ -15,6 +16,7 @@ const MapManager = {
   map: null,
   cluster: null,
   baseLayers: {},
+  informalLayer: null,   // stores informal settlement polygons keyed by name
 
   init() {
     this.map = L.map('map').setView(CONFIG.center, CONFIG.zoom);
@@ -242,6 +244,7 @@ const App = {
     }
     UIManager.initFilters(DataManager.features);
     await this.loadBoundary();
+    await this.loadInformalSettlements();
     this.update();
   },
 
@@ -266,6 +269,57 @@ const App = {
       MapManager.fitToBounds(boundary.getBounds());
     } catch (err) {
       console.warn("Could not load boundary layer:", err);
+    }
+  },
+
+  async loadInformalSettlements() {
+    try {
+      const res = await fetch(CONFIG.informalUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      // Map settlement name → layer bounds for pan-to
+      MapManager.informalLayer = {};
+
+      const geoLayer = L.geoJSON(data, {
+        style: {
+          color: "#e67e22",
+          weight: 1.5,
+          opacity: 0.8,
+          fillColor: "#f39c12",
+          fillOpacity: 0.12
+        },
+        onEachFeature(feature, layer) {
+          const name = feature.properties.Settlement || feature.properties.IS_Name || "Unnamed";
+          layer.bindTooltip(name, { sticky: true, opacity: 0.85 });
+          MapManager.informalLayer[name] = layer;
+        }
+      }).addTo(MapManager.map);
+
+      // Populate the legend dropdown
+      const sel = document.getElementById("settlementNav");
+      if (sel) {
+        [...Object.keys(MapManager.informalLayer)].sort().forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          sel.appendChild(opt);
+        });
+
+        sel.addEventListener("change", (e) => {
+          const chosen = e.target.value;
+          if (!chosen) return;
+          const layer = MapManager.informalLayer[chosen];
+          if (layer) {
+            MapManager.map.fitBounds(layer.getBounds().pad(0.4));
+            layer.openTooltip();
+          }
+        });
+      }
+
+      console.log(`Loaded ${Object.keys(MapManager.informalLayer).length} informal settlement boundaries`);
+    } catch (err) {
+      console.warn("Could not load informal settlement boundaries:", err);
     }
   }
 };
