@@ -2,8 +2,8 @@
 // CONFIG
 // ===============================
 const CONFIG = {
-  center: [-22.559, 17.083], // Default to Windhoek (77% of data)
-  zoom: 12,
+  center: [-22, 17],   // National extent on landing
+  zoom: 6,
   dataUrl: 'data/namibia_dashboard.geojson',
   boundaryUrl: 'data/settlements.geojson',
   informalUrl: 'data/Informal Settlement.geojson'
@@ -16,9 +16,9 @@ const MapManager = {
   map: null,
   cluster: null,
   baseLayers: {},
-  informalLayer: null,    // settlement name → layer
-  townBounds: {},         // town (upper) → L.latLngBounds
-  townSettlements: {},    // town (upper) → [settlement names]
+  informalLayer: {},     // settlement name → Leaflet layer
+  townBounds: {},        // town (UPPER) → L.latLngBounds
+  townSettlements: {},   // town (UPPER) → [settlement names]
 
   init() {
     this.map = L.map('map').setView(CONFIG.center, CONFIG.zoom);
@@ -48,10 +48,8 @@ const MapManager = {
     this.map.addLayer(this.cluster);
   },
 
-  // [LOW] Removed permanent maxBounds lock — only used for initial boundary fit
   fitToBounds(bounds) {
-    if (!bounds) return;
-    this.map.fitBounds(bounds.pad(0.3));
+    if (bounds) this.map.fitBounds(bounds.pad(0.15));
   }
 };
 
@@ -82,35 +80,34 @@ const StyleManager = {
 
   getConditionClass(condition) {
     const c = (condition || "").toLowerCase();
-    if (c.includes("good")) return "good";
+    if (c.includes("good"))    return "good";
     if (c.includes("average")) return "average";
-    if (c.includes("poor")) return "poor";
+    if (c.includes("poor"))    return "poor";
     return "unknown";
   },
 
   getIconClass(facility) {
     const f = (facility || "").toLowerCase();
-    if (f.includes("education")) return "fa-school";
-    if (f.includes("health")) return "fa-hospital";
-    if (f.includes("water")) return "fa-droplet";
-    if (f.includes("transport")) return "fa-bus";
-    if (f.includes("religious")) return "fa-church";
-    if (f.includes("waste")) return "fa-trash";
-    if (f.includes("sanitation")) return "fa-toilet";
-    if (f.includes("market")) return "fa-store";
-    if (f.includes("lighting") || f.includes("light")) return "fa-lightbulb";
-    if (f.includes("social")) return "fa-people-group";
-    if (f.includes("admin")) return "fa-building";
-    if (f.includes("public space")) return "fa-tree";
+    if (f.includes("education"))              return "fa-school";
+    if (f.includes("health"))                 return "fa-hospital";
+    if (f.includes("water"))                  return "fa-droplet";
+    if (f.includes("transport"))              return "fa-bus";
+    if (f.includes("religious"))              return "fa-church";
+    if (f.includes("solid waste") || f.includes("waste")) return "fa-trash";
+    if (f.includes("sanitation"))             return "fa-toilet";
+    if (f.includes("market"))                 return "fa-store";
+    if (f.includes("lighting") || f.includes("light mast")) return "fa-lightbulb";
+    if (f.includes("social"))                 return "fa-people-group";
+    if (f.includes("admin"))                  return "fa-building";
+    if (f.includes("public space"))           return "fa-tree";
     return "fa-location-dot";
   },
 
   createMarker(feature) {
     const p = feature.properties;
     const [lng, lat] = feature.geometry.coordinates;
-
     const conditionClass = this.getConditionClass(p.Condition);
-    const iconClass = this.getIconClass(p.Facility);
+    const iconClass      = this.getIconClass(p.Facility);
 
     return L.marker([lat, lng], {
       icon: L.divIcon({
@@ -131,25 +128,20 @@ const Renderer = {
     MapManager.cluster.clearLayers();
     features.forEach(f => {
       const marker = StyleManager.createMarker(f);
-      // [QUICK WIN] Use the rich pre-built popup from the data
       marker.bindPopup(this.createPopup(f.properties), { maxWidth: 420 });
       MapManager.cluster.addLayer(marker);
     });
   },
 
   createPopup(p) {
-    // Use un_dashboard_popup_html if available, otherwise build enhanced fallback
-    if (p.un_dashboard_popup_html) {
-      return p.un_dashboard_popup_html;
-    }
-    // Enhanced fallback with more fields
+    if (p.un_dashboard_popup_html) return p.un_dashboard_popup_html;
+
     const imgHtml = p.github_image_url_cdn
       ? `<a href="${p.github_image_url_cdn}" target="_blank"><img src="${p.github_image_url_cdn}" width="100%"></a>`
       : "";
-    const functional = p["Is the facility functional?"];
-    const funcLabel = functional === true ? "✅ Yes"
-                    : functional === false ? "❌ No"
-                    : "— Unknown";
+    const fn = p["Is the facility functional?"];
+    const funcLabel = fn === true ? "✅ Yes" : fn === false ? "❌ No" : "— Unknown";
+
     return `
       <div class="popup">
         ${imgHtml}
@@ -161,8 +153,7 @@ const Renderer = {
         <p><b>Functional:</b> ${funcLabel}</p>
         <p><b>Managed by:</b> ${p["Who manages the facility?"] || "—"}</p>
         <p><b>Year established:</b> ${p["Year Established"] || "—"}</p>
-      </div>
-    `;
+      </div>`;
   }
 };
 
@@ -170,26 +161,41 @@ const Renderer = {
 // FILTER MANAGER
 // ===============================
 const FilterManager = {
-  town: "",
-  facility: "",
-  condition: "",
-  functional: "",   // [HIGH] new functional status filter
+  town:       "",
+  settlement: "",   // informal settlement name (exact, from boundary data)
+  facility:   "",
+  functional: "",
 
   apply(features) {
     return features.filter(f => {
       const p = f.properties;
       const townVal = (p.Town || "").toLowerCase();
-      const fVal = (p.Facility || "").toLowerCase();
-      const cVal = (p.Condition || "").toLowerCase();
-      const funcVal = p["Is the facility functional?"];
+      const fVal    = (p.Facility || "").toLowerCase();
+      const cVal    = (p.Condition || "").toLowerCase();
+      const fnVal   = p["Is the facility functional?"];
+      const lat     = f.geometry.coordinates[1];
+      const lng     = f.geometry.coordinates[0];
 
       if (this.town && !townVal.includes(this.town)) return false;
       if (this.facility && !fVal.includes(this.facility)) return false;
-      if (this.condition && !cVal.includes(this.condition)) return false;
+      if (this.functional === "yes"     && fnVal !== true)  return false;
+      if (this.functional === "no"      && fnVal !== false) return false;
+      if (this.functional === "unknown" && fnVal !== null)  return false;
 
-      if (this.functional === "yes" && funcVal !== true) return false;
-      if (this.functional === "no" && funcVal !== false) return false;
-      if (this.functional === "unknown" && funcVal !== null) return false;
+      // Settlement filter: check if point falls inside the chosen polygon
+      if (this.settlement) {
+        const layer = MapManager.informalLayer[this.settlement];
+        if (layer) {
+          const pt = L.latLng(lat, lng);
+          if (!layer.getBounds().contains(pt)) return false;
+          // Fine-grained point-in-polygon using Leaflet's internal method
+          const poly = layer.feature
+            ? layer
+            : null;
+          // Use bounds as approximation (good enough for informal settlement scale)
+          if (!layer.getBounds().pad(0.01).contains(pt)) return false;
+        }
+      }
 
       return true;
     });
@@ -201,28 +207,27 @@ const FilterManager = {
 // ===============================
 const StatsManager = {
   update(features) {
-    const total = features.length;
     let good = 0, avg = 0, poor = 0, func = 0, nonFunc = 0, unknownFunc = 0;
 
     features.forEach(f => {
       const p = f.properties;
       const c = (p.Condition || "").toLowerCase();
-      if (c.includes("good")) good++;
+      if (c.includes("good"))         good++;
       else if (c.includes("average")) avg++;
-      else if (c.includes("poor")) poor++;
+      else if (c.includes("poor"))    poor++;
 
       const fn = p["Is the facility functional?"];
-      if (fn === true) func++;
+      if (fn === true)       func++;
       else if (fn === false) nonFunc++;
-      else unknownFunc++;
+      else                   unknownFunc++;
     });
 
-    document.getElementById("statTotal").textContent = total.toLocaleString();
-    document.getElementById("statGood").textContent = good.toLocaleString();
-    document.getElementById("statAvg").textContent = avg.toLocaleString();
-    document.getElementById("statPoor").textContent = poor.toLocaleString();
-    document.getElementById("statFunc").textContent = func.toLocaleString();
-    document.getElementById("statNonFunc").textContent = nonFunc.toLocaleString();
+    document.getElementById("statTotal").textContent       = features.length.toLocaleString();
+    document.getElementById("statGood").textContent        = good.toLocaleString();
+    document.getElementById("statAvg").textContent         = avg.toLocaleString();
+    document.getElementById("statPoor").textContent        = poor.toLocaleString();
+    document.getElementById("statFunc").textContent        = func.toLocaleString();
+    document.getElementById("statNonFunc").textContent     = nonFunc.toLocaleString();
     document.getElementById("statUnknownFunc").textContent = unknownFunc.toLocaleString();
   }
 };
@@ -231,123 +236,114 @@ const StatsManager = {
 // UI MANAGER
 // ===============================
 const UIManager = {
+
   initFilters(features) {
-    const townSelect      = document.getElementById("townFilter");
-    const facilitySelect  = document.getElementById("facilityFilter");
-    const conditionSelect = document.getElementById("conditionFilter");
-    const funcSelect      = document.getElementById("functionalFilter");
-    const clearBtn        = document.getElementById("clearFilters");
+    const townSel       = document.getElementById("townFilter");
+    const settlementSel = document.getElementById("settlementFilter");
+    const facilitySel   = document.getElementById("facilityFilter");
+    const funcSel       = document.getElementById("functionalFilter");
+    const clearBtn      = document.getElementById("clearFilters");
 
-    if (!townSelect || !facilitySelect || !conditionSelect) {
-      console.warn("One or more filter dropdowns not found in DOM");
-      return;
-    }
-
+    // Populate town dropdown from facility data
     const towns = new Set();
     const facilities = new Set();
-    const conditions = new Set();
-
     features.forEach(f => {
-      if (f.properties.Town) towns.add(f.properties.Town);
+      if (f.properties.Town)     towns.add(f.properties.Town);
       if (f.properties.Facility) facilities.add(f.properties.Facility);
-      if (f.properties.Condition) conditions.add(f.properties.Condition);
     });
 
     [...towns].sort().forEach(t => {
       const opt = document.createElement("option");
-      opt.value = t;
-      opt.textContent = t;
-      townSelect.appendChild(opt);
+      opt.value = t; opt.textContent = t;
+      townSel.appendChild(opt);
     });
 
     [...facilities].sort().forEach(f => {
       const opt = document.createElement("option");
-      opt.value = f;
-      opt.textContent = f;
-      facilitySelect.appendChild(opt);
+      opt.value = f; opt.textContent = f;
+      facilitySel.appendChild(opt);
     });
 
-    [...conditions].sort().forEach(c => {
-      const opt = document.createElement("option");
-      opt.value = c;
-      opt.textContent = c;
-      conditionSelect.appendChild(opt);
-    });
+    // ── Town change ──────────────────────────────────────────────
+    townSel.addEventListener("change", (e) => {
+      const town = e.target.value;
+      FilterManager.town       = town.toLowerCase();
+      FilterManager.settlement = "";
 
-    // [MEDIUM] Sync sidebar town filter with legend nav
-    townSelect.addEventListener("change", (e) => {
-      FilterManager.town = e.target.value.toLowerCase();
-      this.syncTownNav(e.target.value);
+      // Repopulate settlement dropdown for this town
+      this.populateSettlements(town.toUpperCase().trim());
+
+      // Zoom to town extent
+      const upper = town.toUpperCase().trim();
+      if (upper && MapManager.townBounds[upper]) {
+        MapManager.map.fitBounds(MapManager.townBounds[upper].pad(0.2));
+      } else if (!town) {
+        // Zoom back to national
+        MapManager.map.setView(CONFIG.center, CONFIG.zoom);
+      }
+
       App.update();
     });
 
-    facilitySelect.addEventListener("change", (e) => {
+    // ── Settlement change ────────────────────────────────────────
+    settlementSel.addEventListener("change", (e) => {
+      const name = e.target.value;
+      FilterManager.settlement = name;
+
+      if (name && MapManager.informalLayer[name]) {
+        MapManager.map.fitBounds(
+          MapManager.informalLayer[name].getBounds().pad(0.3)
+        );
+      }
+
+      App.update();
+    });
+
+    // ── Facility type change ─────────────────────────────────────
+    facilitySel.addEventListener("change", (e) => {
       FilterManager.facility = e.target.value.toLowerCase();
       App.update();
     });
 
-    conditionSelect.addEventListener("change", (e) => {
-      FilterManager.condition = e.target.value.toLowerCase();
-      App.update();
-    });
-
-    // [HIGH] Functional status filter
-    funcSelect.addEventListener("change", (e) => {
+    // ── Functionality change ─────────────────────────────────────
+    funcSel.addEventListener("change", (e) => {
       FilterManager.functional = e.target.value;
       App.update();
     });
 
-    // [MEDIUM] Clear all filters button
+    // ── Clear all ────────────────────────────────────────────────
     clearBtn.addEventListener("click", () => {
-      FilterManager.town = "";
-      FilterManager.facility = "";
-      FilterManager.condition = "";
+      FilterManager.town       = "";
+      FilterManager.settlement = "";
+      FilterManager.facility   = "";
       FilterManager.functional = "";
 
-      townSelect.value = "";
-      facilitySelect.value = "";
-      conditionSelect.value = "";
-      funcSelect.value = "";
+      townSel.value       = "";
+      facilitySel.value   = "";
+      funcSel.value       = "";
 
-      // Reset legend nav too
-      const townNav = document.getElementById("townNav");
-      const settlementNav = document.getElementById("settlementNav");
-      if (townNav) townNav.value = "";
-      if (settlementNav) {
-        settlementNav.innerHTML = '<option value="">— Select settlement —</option>';
-        settlementNav.disabled = true;
-      }
+      settlementSel.innerHTML = '<option value="">All Settlements</option>';
+      settlementSel.disabled  = true;
 
+      MapManager.map.setView(CONFIG.center, CONFIG.zoom);
       App.update();
     });
   },
 
-  // [MEDIUM] Keep legend town nav in sync when sidebar town filter changes
-  syncTownNav(townName) {
-    const townNav = document.getElementById("townNav");
-    const settlementNav = document.getElementById("settlementNav");
-    if (!townNav) return;
+  // Fill settlement dropdown with names belonging to the given town (UPPER)
+  populateSettlements(town) {
+    const settlementSel = document.getElementById("settlementFilter");
+    settlementSel.innerHTML = '<option value="">All Settlements</option>';
 
-    const upper = townName.toUpperCase().trim();
-    townNav.value = upper;
-
-    // Zoom to town if bounds available
-    if (upper && MapManager.townBounds[upper]) {
-      MapManager.map.fitBounds(MapManager.townBounds[upper].pad(0.15));
-    }
-
-    // Populate settlement dropdown
-    if (settlementNav) {
-      settlementNav.innerHTML = '<option value="">— Select settlement —</option>';
-      settlementNav.disabled = !upper;
-      if (upper && MapManager.townSettlements[upper]) {
-        MapManager.townSettlements[upper].sort().forEach(name => {
-          const opt = document.createElement("option");
-          opt.value = name;
-          opt.textContent = name;
-          settlementNav.appendChild(opt);
-        });
-      }
+    if (town && MapManager.townSettlements[town]) {
+      MapManager.townSettlements[town].sort().forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name; opt.textContent = name;
+        settlementSel.appendChild(opt);
+      });
+      settlementSel.disabled = false;
+    } else {
+      settlementSel.disabled = true;
     }
   }
 };
@@ -360,7 +356,7 @@ const App = {
     MapManager.init();
     await DataManager.load();
     if (DataManager.features.length === 0) {
-      console.error("No facility data loaded – map will be empty.");
+      console.error("No facility data loaded.");
       return;
     }
     UIManager.initFilters(DataManager.features);
@@ -372,7 +368,7 @@ const App = {
   update() {
     const filtered = FilterManager.apply(DataManager.features);
     Renderer.render(filtered);
-    StatsManager.update(filtered);  // [HIGH] update stats bar
+    StatsManager.update(filtered);
   },
 
   async loadBoundary() {
@@ -381,14 +377,8 @@ const App = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       L.geoJSON(data, {
-        style: {
-          color: "#2c3e50",
-          weight: 2,
-          opacity: 0.6,
-          fillOpacity: 0
-        }
+        style: { color: "#2c3e50", weight: 2, opacity: 0.6, fillOpacity: 0 }
       }).addTo(MapManager.map);
-      // [LOW] No longer locks maxBounds — boundary just loads silently
     } catch (err) {
       console.warn("Could not load boundary layer:", err);
     }
@@ -400,21 +390,16 @@ const App = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      MapManager.informalLayer = {};
-
-      const geoLayer = L.geoJSON(data, {
+      L.geoJSON(data, {
         style: {
-          color: "#e67e22",
-          weight: 1.5,
-          opacity: 0.8,
-          fillColor: "#f39c12",
-          fillOpacity: 0.12
+          color: "#e67e22", weight: 1.5, opacity: 0.8,
+          fillColor: "#f39c12", fillOpacity: 0.12
         },
         onEachFeature(feature, layer) {
           const name = feature.properties.Settlement || "Unnamed";
           const town = (feature.properties.Town || "").toUpperCase().trim();
 
-          // [LOW] Only show tooltip above zoom 12 to avoid confusion at overview zoom
+          // Tooltip only at close zoom
           MapManager.map.on("zoomend", () => {
             if (MapManager.map.getZoom() >= 12) {
               layer.bindTooltip(name, { sticky: true, opacity: 0.85 });
@@ -426,7 +411,7 @@ const App = {
           MapManager.informalLayer[name] = layer;
 
           if (!MapManager.townBounds[town]) {
-            MapManager.townBounds[town] = layer.getBounds();
+            MapManager.townBounds[town]    = layer.getBounds();
             MapManager.townSettlements[town] = [];
           } else {
             MapManager.townBounds[town].extend(layer.getBounds());
@@ -435,75 +420,11 @@ const App = {
         }
       }).addTo(MapManager.map);
 
-      // Populate legend town nav dropdown
-      const townSel       = document.getElementById("townNav");
-      const settlementSel = document.getElementById("settlementNav");
-
-      if (townSel && settlementSel) {
-        Object.keys(MapManager.townBounds).sort().forEach(town => {
-          const opt = document.createElement("option");
-          opt.value = town;
-          opt.textContent = town;
-          townSel.appendChild(opt);
-        });
-
-        // [MEDIUM] Legend town nav → also syncs sidebar town filter
-        townSel.addEventListener("change", (e) => {
-          const town = e.target.value;
-
-          settlementSel.innerHTML = '<option value="">— Select settlement —</option>';
-          settlementSel.disabled = !town;
-
-          if (!town) {
-            // Clear sidebar town filter too
-            const sidebarTown = document.getElementById("townFilter");
-            if (sidebarTown) sidebarTown.value = "";
-            FilterManager.town = "";
-            App.update();
-            return;
-          }
-
-          MapManager.map.fitBounds(MapManager.townBounds[town].pad(0.15));
-
-          // Sync sidebar filter
-          const sidebarTown = document.getElementById("townFilter");
-          if (sidebarTown) {
-            // Match value by case-insensitive comparison
-            const matchOpt = [...sidebarTown.options].find(
-              o => o.value.toUpperCase() === town
-            );
-            if (matchOpt) {
-              sidebarTown.value = matchOpt.value;
-              FilterManager.town = matchOpt.value.toLowerCase();
-            }
-          }
-
-          (MapManager.townSettlements[town] || []).sort().forEach(name => {
-            const opt = document.createElement("option");
-            opt.value = name;
-            opt.textContent = name;
-            settlementSel.appendChild(opt);
-          });
-
-          App.update();
-        });
-
-        settlementSel.addEventListener("change", (e) => {
-          const chosen = e.target.value;
-          if (!chosen) return;
-          const layer = MapManager.informalLayer[chosen];
-          if (layer) {
-            MapManager.map.fitBounds(layer.getBounds().pad(0.4));
-          }
-        });
-      }
-
-      console.log(`Loaded ${Object.keys(MapManager.informalLayer).length} informal settlement boundaries`);
+      console.log(`Loaded ${Object.keys(MapManager.informalLayer).length} settlement boundaries`);
     } catch (err) {
-      console.warn("Could not load informal settlement boundaries:", err);
+      console.warn("Could not load informal settlements:", err);
     }
   }
 };
 
-// Start the app
 App.init();

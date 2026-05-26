@@ -5,18 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Namibia Informal Settlements & Facilities Mapping</title>
 
-  <!-- Leaflet core -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet MarkerCluster -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -36,10 +32,11 @@
 </div>
 
 <div class="page">
-  <!-- Sidebar -->
+
+  <!-- ===== SIDEBAR ===== -->
   <div class="sidebar">
 
-    <!-- Stats bar -->
+    <!-- Stats panel -->
     <div class="panel stats-panel">
       <div class="stats-row">
         <div class="stat-box">
@@ -75,29 +72,33 @@
       </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Filter 1: Town / Local Authority -->
     <div class="panel">
-      <div class="panel-header">
-        <label>🏘️ Town / Settlement</label>
-      </div>
+      <label>🏛️ Town / Local Authority</label>
       <select id="townFilter" class="dropdown">
         <option value="">All Towns</option>
       </select>
     </div>
+
+    <!-- Filter 2: Informal Settlement (cascades from town) -->
+    <div class="panel">
+      <label>🏘️ Informal Settlement</label>
+      <select id="settlementFilter" class="dropdown" disabled>
+        <option value="">All Settlements</option>
+      </select>
+    </div>
+
+    <!-- Filter 3: Facility Type -->
     <div class="panel">
       <label>🏥 Facility Type</label>
       <select id="facilityFilter" class="dropdown">
-        <option value="">All</option>
+        <option value="">All Types</option>
       </select>
     </div>
+
+    <!-- Filter 4: Functionality -->
     <div class="panel">
-      <label>📊 Condition</label>
-      <select id="conditionFilter" class="dropdown">
-        <option value="">All</option>
-      </select>
-    </div>
-    <div class="panel">
-      <label>⚡ Functional Status</label>
+      <label>⚡ Functionality</label>
       <select id="functionalFilter" class="dropdown">
         <option value="">All</option>
         <option value="yes">Functional</option>
@@ -109,12 +110,12 @@
     <!-- Clear filters -->
     <button id="clearFilters" class="clear-btn">✕ Clear all filters</button>
 
-    <div class="panel">
+    <div class="panel hint-panel">
       <p><small>Click on markers for details.<br>Clusters show number of facilities.</small></p>
     </div>
   </div>
 
-  <!-- Map container -->
+  <!-- ===== MAP ===== -->
   <div class="map-section">
     <div id="map"></div>
     <div class="legend">
@@ -127,23 +128,18 @@
       <hr class="legend-divider">
       <h4>Facility Type</h4>
       <div><span class="legend-icon"><i class="fa-solid fa-droplet"></i></span> Water point</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-toilet"></i></span> Sanitation</div>
       <div><span class="legend-icon"><i class="fa-solid fa-trash"></i></span> Solid waste</div>
       <div><span class="legend-icon"><i class="fa-solid fa-school"></i></span> Education</div>
       <div><span class="legend-icon"><i class="fa-solid fa-hospital"></i></span> Health</div>
       <div><span class="legend-icon"><i class="fa-solid fa-church"></i></span> Religious</div>
       <div><span class="legend-icon"><i class="fa-solid fa-bus"></i></span> Transport</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-lightbulb"></i></span> Lighting</div>
+      <div><span class="legend-icon"><i class="fa-solid fa-store"></i></span> Market</div>
       <div><span class="legend-icon"><i class="fa-solid fa-location-dot"></i></span> Other</div>
-
-      <hr class="legend-divider">
-      <h4>🏘️ Navigate</h4>
-      <select id="townNav" class="legend-dropdown">
-        <option value="">— Select town —</option>
-      </select>
-      <select id="settlementNav" class="legend-dropdown" disabled>
-        <option value="">— Select settlement —</option>
-      </select>
     </div>
   </div>
+
 </div>
 
 <div class="footer">
