@@ -1,9 +1,7 @@
 /* =========================
    GLOBAL
 ========================= */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
@@ -26,10 +24,7 @@ body {
   gap: 10px;
 }
 
-.brand-logo {
-  width: 45px;
-  height: auto;
-}
+.brand-logo { width: 45px; height: auto; }
 
 .brand-name {
   color: white;
@@ -58,17 +53,17 @@ body {
 }
 
 /* =========================
-   LAYOUT - CRITICAL FIXES
+   LAYOUT
 ========================= */
 .page {
   display: flex;
-  height: calc(100vh - 95px); /* adjust for topbar+hero */
-  overflow: hidden; /* prevents page scroll */
+  height: calc(100vh - 95px);
+  overflow: hidden;
 }
 
 .sidebar {
   width: 300px;
-  flex-shrink: 0; /* prevents sidebar from shrinking */
+  flex-shrink: 0;
   background: #f9fcfe;
   border-right: 1px solid #dfe6e9;
   overflow-y: auto;
@@ -79,13 +74,61 @@ body {
 .map-section {
   flex: 1;
   position: relative;
-  min-width: 0; /* critical for flex child to respect parent width */
+  min-width: 0;
 }
 
 #map {
   height: 100%;
   width: 100%;
 }
+
+/* =========================
+   STATS BAR
+========================= */
+.stats-panel {
+  padding: 10px 12px;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.stats-row2 {
+  grid-template-columns: repeat(3, 1fr);
+  margin-bottom: 0;
+}
+
+.stat-box {
+  text-align: center;
+  background: #f0f8fe;
+  border-radius: 6px;
+  padding: 6px 4px;
+}
+
+.stat-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2c3e50;
+  line-height: 1.2;
+}
+
+.stat-lbl {
+  font-size: 9px;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 1px;
+}
+
+.stat-good    { color: #27ae60; }
+.stat-avg     { color: #f39c12; }
+.stat-poor    { color: #c0392b; }
+.stat-func    { color: #27ae60; }
+.stat-nonfunc { color: #c0392b; }
+.stat-unknown { color: #7f8c8d; }
 
 /* =========================
    PANELS & DROPDOWNS
@@ -98,12 +141,44 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
 }
 
+.panel label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #2c3e50;
+}
+
 .dropdown {
   width: 100%;
   padding: 6px;
-  margin-bottom: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
+  font-size: 13px;
+  background: white;
+}
+
+/* =========================
+   CLEAR FILTERS BUTTON
+========================= */
+.clear-btn {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #7f8c8d;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.clear-btn:hover {
+  background: #fde8e8;
+  color: #c0392b;
+  border-color: #f5c6cb;
 }
 
 /* =========================
@@ -128,9 +203,9 @@ body {
   box-shadow: 0 4px 10px rgba(0,0,0,0.35);
 }
 
-.marker.good { background: #27ae60; }
+.marker.good    { background: #27ae60; }
 .marker.average { background: #f39c12; }
-.marker.poor { background: #c0392b; }
+.marker.poor    { background: #c0392b; }
 .marker.unknown { background: #7f8c8d; }
 
 /* =========================
@@ -150,7 +225,7 @@ body {
 }
 
 /* =========================
-   LEGEND - NOW INSIDE MAP AREA
+   LEGEND
 ========================= */
 .legend {
   position: absolute;
@@ -161,15 +236,53 @@ body {
   border-radius: 8px;
   font-size: 13px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  line-height: 1.6;
+  line-height: 1.7;
   z-index: 1000;
-  pointer-events: auto; /* allow interaction with dropdown */
+  pointer-events: auto;
   min-width: 190px;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+}
+
+.legend h4 {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7f8c8d;
+}
+
+.legend .box {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+
+.box.good    { background: #27ae60; }
+.box.average { background: #f39c12; }
+.box.poor    { background: #c0392b; }
+.box.unknown { background: #7f8c8d; }
+
+/* Facility type icons in legend */
+.legend-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 5px;
+  color: #555;
+  font-size: 12px;
+  vertical-align: middle;
 }
 
 .legend-divider {
   border: none;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #e8e8e8;
   margin: 8px 0;
 }
 
@@ -190,25 +303,6 @@ body {
   cursor: default;
 }
 
-.legend h4 {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.legend .box {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  margin-right: 6px;
-  border-radius: 2px;
-}
-
-.box.good { background:#27ae60; }
-.box.average { background:#f39c12; }
-.box.poor { background:#c0392b; }
-.box.unknown { background:#7f8c8d; }
-
 /* =========================
    POPUPS
 ========================= */
@@ -216,16 +310,30 @@ body {
   width: 100%;
   border-radius: 6px;
   margin-bottom: 6px;
+  display: block;
 }
 
 .popup h4 {
-  margin: 4px 0;
+  margin: 4px 0 6px;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .popup p {
-  margin: 2px 0;
+  margin: 3px 0;
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.popup p b {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+/* Override Leaflet popup max-width */
+.leaflet-popup-content {
+  max-width: 420px !important;
+  margin: 10px 14px !important;
 }
 
 /* =========================
@@ -255,22 +363,11 @@ body {
   min-width: 220px;
 }
 
-.footer-center {
-  text-align: center;
-}
+.footer-center { text-align: center; }
+.footer-right  { text-align: right; }
 
-.footer-right {
-  text-align: right;
-}
-
-.footer a {
-  color: #4fc3f7;
-  text-decoration: none;
-}
-
-.footer a:hover {
-  text-decoration: underline;
-}
+.footer a { color: #4fc3f7; text-decoration: none; }
+.footer a:hover { text-decoration: underline; }
 
 .footer-disclaimer {
   text-align: center;
@@ -292,25 +389,22 @@ body {
   .sidebar {
     width: 100%;
     height: auto;
-    max-height: 40vh;
+    max-height: 45vh;
     border-right: none;
     border-bottom: 1px solid #ddd;
   }
-  .map-section {
-    height: 60vh;
-  }
+  .map-section { height: 60vh; }
   .legend {
     bottom: 10px;
     right: 10px;
     font-size: 11px;
     padding: 8px 10px;
+    max-height: 50vh;
   }
   .footer-inner {
     flex-direction: column;
     text-align: center;
     gap: 10px;
   }
-  .footer-right {
-    text-align: center;
-  }
+  .footer-right { text-align: center; }
 }
