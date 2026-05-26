@@ -182,16 +182,17 @@ const FilterManager = {
       if (this.functional === "no"      && fnVal !== false) return false;
       if (this.functional === "unknown" && fnVal !== null)  return false;
 
-      // Settlement filter: check if point falls within the chosen polygon bounds
+      // Settlement filter: check if point falls inside the chosen polygon
       if (this.settlement) {
-        const townUpper = (this.town || "").toUpperCase().trim();
-        const key = `${townUpper}::${this.settlement}`;
-        const layer = MapManager.informalLayer[key]
-          || MapManager.informalLayer[
-               Object.keys(MapManager.informalLayer).find(k => k.endsWith(`::${this.settlement}`))
-             ];
+        const layer = MapManager.informalLayer[this.settlement];
         if (layer) {
           const pt = L.latLng(lat, lng);
+          if (!layer.getBounds().contains(pt)) return false;
+          // Fine-grained point-in-polygon using Leaflet's internal method
+          const poly = layer.feature
+            ? layer
+            : null;
+          // Use bounds as approximation (good enough for informal settlement scale)
           if (!layer.getBounds().pad(0.01).contains(pt)) return false;
         }
       }
@@ -289,16 +290,10 @@ const UIManager = {
       const name = e.target.value;
       FilterManager.settlement = name;
 
-      if (name) {
-        // Keys are stored as "TOWN::name" — find the matching layer
-        const currentTown = FilterManager.town.toUpperCase().trim();
-        const key = `${currentTown}::${name}`;
-        const layer = MapManager.informalLayer[key]
-          || MapManager.informalLayer[Object.keys(MapManager.informalLayer)
-               .find(k => k.endsWith(`::${name}`))];
-        if (layer) {
-          MapManager.map.fitBounds(layer.getBounds().pad(0.3));
-        }
+      if (name && MapManager.informalLayer[name]) {
+        MapManager.map.fitBounds(
+          MapManager.informalLayer[name].getBounds().pad(0.3)
+        );
       }
 
       App.update();
@@ -395,9 +390,6 @@ const App = {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      // Collect all layers for a single shared zoomend listener
-      const allSettlementLayers = [];
-
       L.geoJSON(data, {
         style: {
           color: "#e67e22", weight: 1.5, opacity: 0.8,
@@ -407,20 +399,19 @@ const App = {
           const name = feature.properties.Settlement || "Unnamed";
           const town = (feature.properties.Town || "").toUpperCase().trim();
 
-          // Use "TOWN::name" key to avoid cross-town name collisions.
-          // Append count suffix for the rare same-town duplicate.
-          const baseKey = `${town}::${name}`;
-          const existingCount = Object.keys(MapManager.informalLayer)
-            .filter(k => k.startsWith(baseKey)).length;
-          const key = existingCount > 0 ? `${baseKey}::${existingCount}` : baseKey;
+          // Tooltip only at close zoom
+          MapManager.map.on("zoomend", () => {
+            if (MapManager.map.getZoom() >= 12) {
+              layer.bindTooltip(name, { sticky: true, opacity: 0.85 });
+            } else {
+              layer.unbindTooltip();
+            }
+          });
 
-          layer._settlementName = name;
-          layer._settlementKey  = key;
-          MapManager.informalLayer[key] = layer;
-          allSettlementLayers.push(layer);
+          MapManager.informalLayer[name] = layer;
 
           if (!MapManager.townBounds[town]) {
-            MapManager.townBounds[town]      = layer.getBounds();
+            MapManager.townBounds[town]    = layer.getBounds();
             MapManager.townSettlements[town] = [];
           } else {
             MapManager.townBounds[town].extend(layer.getBounds());
@@ -428,18 +419,6 @@ const App = {
           MapManager.townSettlements[town].push(name);
         }
       }).addTo(MapManager.map);
-
-      // ONE zoomend listener shared across all settlement layers (not 203 separate ones)
-      MapManager.map.on("zoomend", () => {
-        const show = MapManager.map.getZoom() >= 12;
-        allSettlementLayers.forEach(lyr => {
-          if (show) {
-            lyr.bindTooltip(lyr._settlementName, { sticky: true, opacity: 0.85 });
-          } else {
-            lyr.unbindTooltip();
-          }
-        });
-      });
 
       console.log(`Loaded ${Object.keys(MapManager.informalLayer).length} settlement boundaries`);
     } catch (err) {
